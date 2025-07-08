@@ -1,16 +1,13 @@
-#include "H3.h"
+#include "H8.h"
 #include "delay.h"
+#include "watchdog.h"
+#include "TA3782F.h"
 
 #define led1 RX_VLED // Define led1 as RX_VLED for LED control
 #define led2 TX_VLED // Define P31 as TX_VLED for LED control
 #define led3 KEY_LED
 
-void watchdog_reset(void) {
-        // Reset the watchdog timer
-        IOHCON0 = 0xaa;
-        IOHCON0 = 0x55;
-        IOHCON1 |= 1;
-}
+
 
 // Initialize P31 for LED output
 void init_led(void) {
@@ -50,10 +47,11 @@ void main(void)
                 led2 = 0; // Turn off TX_VLED
                 led3 = 0; // Turn off KEY_LED
                 watchdog_reset(); // Reset the watchdog timer
-                delay(1000);
+                delay_ms(3,232);
                 led1 = 1;
                 led2 = 1; // Turn on TX_VLED
                 led3 = 1; // Turn on KEY_LED
-                delay(1000);
+                delay_ms(3,232);
+
         }
 }

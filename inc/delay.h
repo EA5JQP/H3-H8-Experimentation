@@ -1,9 +1,10 @@
-#ifndef __DELAY_H
-#define __DELAY_H
+#ifndef DELAY_H
+#define DELAY_H
 
-#include "main.h"
+#include "types.h"
+#include "watchdog.h"
 
-void delay100us(void);
-void delay(u16);
+void delay_ms(u8 ms_high, u8 ms_low);
+void delay_loop(void);
 
-#endif 
+#endif
