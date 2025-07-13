@@ -6,5 +6,6 @@
 
 void delay_ms(u8 ms_high, u8 ms_low);
 void delay_loop(void);
+void delay_short(u8 cnt);
 
 #endif

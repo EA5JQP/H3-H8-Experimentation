@@ -1,57 +1,52 @@
 #include "H8.h"
 #include "delay.h"
 #include "watchdog.h"
+#include "hardware.h"
+#include "pwm.h"
+#include "types.h"
 #include "TA3782F.h"
+#include "uart.h"
+#include "keypad.h"
 
-#define led1 RX_VLED // Define led1 as RX_VLED for LED control
-#define led2 TX_VLED // Define P31 as TX_VLED for LED control
-#define led3 KEY_LED
+#define led1 TXLED // Define led1 as RX_VLED for LED control
+#define led2 RXLED // Define P31 as TX_VLED for LED control
 
-
-
-// Initialize P31 for LED output
-void init_led(void) {
-        // Configure P31 as output
-        // Based on the original code: P3CON = 0xef
-        // This means P31 is configured as output (bit 1 in P3CON)
-        
-        // Set P3CON - configure P31 as output
-        // Bit pattern: 0xef = 11101111 (bit 4 = 0, others = 1)
-        // For P31 output, we need bit 1 in P3CON to be configured appropriately
-        // P3CON = 0xef;           // Configure P3 pins (same as original code)
-        
-        // Initialize P31 to 0 (LED off)
-        // P0CON = 0xff;
-        // P1CON = 0xdd;
-        // P2CON = 0xc6;
-        P3CON = 0xef;
-        // P4CON = 0xfe;
-        // P5CON = 0xfd;
-        // exP34Mode = 1;
-        // P0 = 0xf;
-        // P1 = 0x02; //0xa;
-        // P2 = 0x40;
-        P3 = 0;
-        // P4 = 0xb1;
-        // P5 = 0x20;        
-
-        watchdog_reset(); // Reset the watchdog timer
-}
 
 void main(void)
 {
-        init_led(); // Initialize LED control
+        hardware_init(); // Initialize LED control
+        timer_init(); // Initialize the timer
+        pwm_init(0,0xc); // Initialize PWM with duty cycle 0 and 0xC
+        watchdog_init(); // Initialize the watchdog timer
+        watchdog_reset(); // Reset the watchdog timer
+        watchdog_config(); // Configure the watchdog timer
+        pwm_pin_setup();
+        uart_pr_init(); // Initialize the primary UART
+        uart_bt_init(); // Initialize the Bluetooth UART
+        delay_ms(1,0x2c);
+
+
+
         while (1) 
 	{
-                led1 = 0;
-                led2 = 0; // Turn off TX_VLED
-                led3 = 0; // Turn off KEY_LED
+                RXLED = 0; 
+                TXLED = 1; // Turn on TX_VLED
+                BEEP = 0; // Turn off LAMPOW
+                LAMPOW = 0; // Turn off LAMPOW
                 watchdog_reset(); // Reset the watchdog timer
+                delay_ms(6,232);
+                TXLED = 0; // Turn off TX_VLED
+                RXLED = 1;
                 delay_ms(3,232);
-                led1 = 1;
-                led2 = 1; // Turn on TX_VLED
-                led3 = 1; // Turn on KEY_LED
-                delay_ms(3,232);
+                uart_pr_send_byte(0x48);    // 'H'
+                uart_pr_send_byte(0x45);    // 'E' 
+                uart_pr_send_byte(0x4C);    // 'L'
+                uart_pr_send_byte(0x4C);    // 'L'
+                uart_pr_send_byte(0x4F);    // 'O'               
+                delay_ms(6,232);
+
+
+
 
         }
 }

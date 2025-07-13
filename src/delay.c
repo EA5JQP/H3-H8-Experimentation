@@ -40,3 +40,13 @@ void delay_loop(void)
 
     } while (outer_low != 8 || outer_high != 0);
 }
+
+void delay_short(u8 cnt)
+{
+    /* Short delay loop that runs until cnt is zero.
+       Uses watchdog-reset to prevent timeout. */
+
+    do {
+        watchdog_reset();  // Prevent watchdog timeout
+    } while (cnt-- != 0);
+}
