@@ -1,4 +1,5 @@
 #include "keypad.h"
+#include "uart.h"
 
 // Direct memory access (for embedded systems)
 __xdata volatile u8 key_code;          // DAT_EXTMEM_0379
@@ -13,12 +14,12 @@ u8 keypad_scan(void) {
     P1 &= 0xF; // Set P1.4 to P1.7 as LOW (KEYOUT1 to KEYOUT4)
     
     // Secondary ptt is likely considered in the original code:
-    u8 ptt_active = (RXD232_PTT == 1); // || (secondary_ptt != 0);
     u8 no_keys_pressed = (P3 & 0x1F) == 0x1F;
 
     // Handle key release and reset debounce
-    if (ptt_active && no_keys_pressed) {
-        if ((key_code == 0x00) || (debounce_counter > 5)) {
+    // When RXD232_PTT is not pressed is high, so it is resetting the key code
+    if ((RXD232_PTT == 1) && no_keys_pressed) {
+        if ((key_code == 0x00) || (debounce_counter < 5)) {
             debounce_counter = 0;
             key_code = 0;
             // key_repeat_active = 0;
@@ -32,20 +33,18 @@ u8 keypad_scan(void) {
             debounce_counter = 0;
 
             if (key_code == 0x00) {
-                // Clear high nibble temporarily
-                P1 |= 0xF0;
-                if (RXD232_PTT != 0x01) {
-                    key_code = 0x13;
-                    delay_short(10);
-                }
-                    else if (!KEYIN1) key_code = 0x16;
-                    else if (!KEYIN2) key_code = 0x11;
-                    else if (!KEYIN3) key_code = 0x12;
+                // Set high nibble temporarily
+                KEYOUT1 = 01; KEYOUT2 = 1; KEYOUT3 = 1; KEYOUT4 = 1;
+                delay_short(10);
+                if (RXD232_PTT != 0x01) key_code = 0x13;
+                else if (!KEYIN1) key_code = 0x16;
+                else if (!KEYIN2) key_code = 0x11;
+                else if (!KEYIN3) key_code = 0x12;
             } 
 
             if (key_code == 0x00) {
                 // No key pressed, reset key code
-                KEYOUT1 = 0;
+                KEYOUT1 = 0; KEYOUT2 = 1; KEYOUT3 = 1; KEYOUT4 = 1;
                 delay_short(10);
                 if (KEYIN1 != 0x01) key_code = 0x0B;
                 else if (!KEYIN2) key_code = 0x02;
@@ -55,9 +54,7 @@ u8 keypad_scan(void) {
             }
             
             if (key_code == 0x00) {
-                KEYOUT1 = 1;
-                delay_short(10);
-                KEYOUT2 = 0;
+                KEYOUT1 = 1; KEYOUT2 = 0; KEYOUT3 = 1; KEYOUT4 = 1;
                 delay_short(10);
                 if (!KEYIN1) key_code = 0x0C;
                 else if (!KEYIN2) key_code = 0x03;
@@ -67,9 +64,7 @@ u8 keypad_scan(void) {
             }
 
             if (key_code == 0x00) {
-                KEYOUT2 = 1;
-                delay_short(10);
-                KEYOUT3 = 0;
+                KEYOUT1 = 1; KEYOUT2 = 1; KEYOUT3 = 0; KEYOUT4 = 1;
                 delay_short(10);
                 if (!KEYIN1) key_code = 0x0D;
                 else if (!KEYIN2) key_code = 0x04;
@@ -78,9 +73,7 @@ u8 keypad_scan(void) {
                 else if (!KEYIN5) key_code = 0x19;
             }
             if (key_code == 0x00) {
-                KEYOUT3 = 1;
-                delay_short(10);
-                KEYOUT4 = 0;
+                KEYOUT1 = 1; KEYOUT2 = 1; KEYOUT3 = 1; KEYOUT4 = 0;
                 delay_short(10);
                 if (!KEYIN1) key_code = 0x0E;
                 else if (!KEYIN2) key_code = 0x0F;

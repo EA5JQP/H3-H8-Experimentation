@@ -13,7 +13,9 @@
     // Port Configuration Registers
     P0CON = 0xFC;
     // P1CON is not initialized in the decompiled code 
-    // Looks like the address assigned to P1CON in the datasheet wrongly 
+    // Looks like the address is assigned to P1CON in the datasheet incorrectly, since 0x96 is used for UART 1 Control 
+    // The keypad configuration appears incomplete in the decompiled code because ports 17, 16, 15 and 14 must be set to OUTPUT mode
+    // yet the radio obviously works, indicating there's configuration happening elsewhere that we haven't identified yet.
     P2CON = 0xFD; 
     P3CON = 0x60;
     P4CON = 0xFE;
@@ -27,7 +29,8 @@
 
     // Port Initial Values
     P0 = 0;
-    P1 = 10;  // P1.1 and P1.3 HIGH for SPI idle states
+    P1 = 10;  
+    // P1 = 10 (0x0A in hex = 00001010 binary), which sets P11 = 1 (UART RX), P13 = 1 (UART TX)
     P2 = 0;
     P3 = 0; 
     P4 = 0;

@@ -1,11 +1,13 @@
 // H8_Pinmap.h — Pin Definitions for H8 Board
 
 #define APC           P02     // Pin 1  -> APC
-#define LCDRST        P03     // Pin 2  -> LCDRST
-#define LCDSCLK       P04     // Pin 3  -> LCDSCLK
-#define LCDSDA        P05     // Pin 4  -> LCDSDA
-#define LCDCS         P06     // Pin 5  -> LCDCS
-#define LCDAO         P07     // Pin 6  -> LCDAO
+#define LCD_RST       P03     // Pin 2  -> LCDRST
+#define LCD_CLK       P04     // Pin 3  -> LCDSCLK
+#define LCD_SDA       P05     // Pin 4  -> LCDSDA
+#define LCD_CD        P06     // Pin 5  -> LCDCS
+#define LCD_DAO       P07     // Pin 6  -> LCDAO
+
+
 
 // Pin 7 is GND
 
