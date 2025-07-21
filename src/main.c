@@ -8,6 +8,7 @@
 #include "uart.h"
 #include "keypad.h"
 #include "lcd.h"
+#include "at1846s.h"
 
 #define led1 TXLED // Define led1 as RX_VLED for LED control
 #define led2 RXLED // Define P31 as TX_VLED for LED control
@@ -26,6 +27,13 @@ void main(void)
         uart_bt_init(); // Initialize the Bluetooth UART
         lcd_init(); // Initialize the LCD display
         delay_ms(1,0x2c);
+        at1846s_init(); // Initialize the AT1846S transceiver
+
+        u8 id_low, id_high;
+
+        // Read chip ID (register 0x00) 
+        at1846s_spi_transceive(0x80, &id_low, &id_high);
+
 
         u8 square_size = 16;  // 16x16 pixel squares
 
@@ -60,13 +68,27 @@ void main(void)
                 // TXLED = 0; // Turn off TX_VLED
                 // RXLED = 1;
                 delay_ms(1,232);
-                uart_pr_send_byte(keypad_scan()); // To see if PTT is affecting detection
-                TXLED = 0; // Turn on TX_VLED
 
+                at1846s_spi_transceive(0x80, &id_low, &id_high);
+                delay_ms(0,100);
+                uart_pr_send_byte(id_low);
+                uart_pr_send_byte(id_high);
                 delay_ms(6,232);
 
+                at1846s_spi_transceive(0x82, &id_low, &id_high);
+                delay_ms(0,100);
+                uart_pr_send_byte(id_low);
+                uart_pr_send_byte(id_high);
+                delay_ms(6,232);
 
-
+                at1846s_spi_transceive(0x9c, &id_low, &id_high);
+                delay_ms(0,100);
+                uart_pr_send_byte(id_low);
+                uart_pr_send_byte(id_high);
+                delay_ms(6,232);
+                
+                TXLED = 0; // Turn on TX_VLED
+                
         }
 
 }

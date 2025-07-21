@@ -50,3 +50,24 @@ void delay_short(u8 cnt)
         watchdog_reset();  // Prevent watchdog timeout
     } while (cnt-- != 0);
 }
+
+void delay_15_cycles(void)
+{
+    __asm
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+        nop
+    __endasm;
+}

@@ -172,6 +172,9 @@ __sfr __at(0xFF) OPREG;     // Option register
 __sfr __at(0xDE) UKSFR_DE; // Unknown SFR at 0xDE - Added based on Ghidra analysis
 __sfr __at(0xDF) UKSFR_DF; // Unknown SFR at 0xDF - Added based on Ghidra analysis
 
+// __sfr __at(0x0E) BANK1_R6;  // ADC result low byte (or voltage reading low)
+// __sfr __at(0x0F) BANK1_R7;  // ADC result high byte (or voltage reading high)
+
 
 // Extended memory-mapped registers confirmed by Ghidra analysis
 #define exWdT0 (*((volatile unsigned char __xdata *) 0xF698))      // Extended watchdog timer 0
@@ -309,5 +312,7 @@ __sbit __at(0x8F) TF1;      // Timer 1 overflow flag
 __sbit __at(0x8E) TR1;      // Timer 1 run control
 __sbit __at(0x8D) TF0;      // Timer 0 overflow flag
 __sbit __at(0x8C) TR0;      // Timer 0 run control
+
+
 
 #endif
