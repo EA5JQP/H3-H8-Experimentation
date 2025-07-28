@@ -9,6 +9,7 @@
 #include "keypad.h"
 #include "lcd.h"
 #include "at1846s.h"
+#include "battery.h"
 
 #define led1 TXLED // Define led1 as RX_VLED for LED control
 #define led2 RXLED // Define P31 as TX_VLED for LED control
@@ -23,11 +24,13 @@ void main(void)
         watchdog_reset(); // Reset the watchdog timer
         watchdog_config(); // Configure the watchdog timer
         pwm_pin_setup();
+        delay_ms(1,0x2c);
         uart_pr_init(); // Initialize the primary UART
         uart_bt_init(); // Initialize the Bluetooth UART
         lcd_init(); // Initialize the LCD display
-        delay_ms(1,0x2c);
         at1846s_init(); // Initialize the AT1846S transceiver
+
+        system_delay();
 
         u8 id_low, id_high;
 
@@ -36,6 +39,8 @@ void main(void)
 
 
         u8 square_size = 16;  // 16x16 pixel squares
+        u16 batt_voltage = 0;
+        u16 ADCValue = 0;
 
         lcd_set_window(0, 0, 159, 127);  // Full screen
     
@@ -64,27 +69,25 @@ void main(void)
                 TXLED = 1; // Turn on TX_VLED
                 LAMPOW = 0; // Turn off LAMPOW
 
-                watchdog_reset(); // Reset the watchdog timer
+                watchdog_reset(); // Reset the watchdog timer   
                 // TXLED = 0; // Turn off TX_VLED
                 // RXLED = 1;
                 delay_ms(1,232);
 
-                at1846s_spi_transceive(0x80, &id_low, &id_high);
-                delay_ms(0,100);
-                uart_pr_send_byte(id_low);
-                uart_pr_send_byte(id_high);
-                delay_ms(6,232);
+                // at1846s_spi_transceive(0x80, &id_low, &id_high);
+                // delay_ms(0,100);
+                // uart_pr_send_byte(id_low);
+                // uart_pr_send_byte(id_high);
+                // delay_ms(6,232);
 
-                at1846s_spi_transceive(0x82, &id_low, &id_high);
                 delay_ms(0,100);
-                uart_pr_send_byte(id_low);
-                uart_pr_send_byte(id_high);
-                delay_ms(6,232);
+                batt_voltage = battery_read(); // Read battery voltage
+                uart_pr_send_byte((batt_voltage>> 8) & 0xFF);   // Send high byte
+                uart_pr_send_byte(batt_voltage & 0xFF);    // Send low byte 
+                
+                uart_pr_send_byte(ADC10);   // Send high byte
+                uart_pr_send_byte(ADC1);    // Send low byte  
 
-                at1846s_spi_transceive(0x9c, &id_low, &id_high);
-                delay_ms(0,100);
-                uart_pr_send_byte(id_low);
-                uart_pr_send_byte(id_high);
                 delay_ms(6,232);
                 
                 TXLED = 0; // Turn on TX_VLED

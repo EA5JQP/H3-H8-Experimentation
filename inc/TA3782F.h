@@ -120,6 +120,8 @@ __sfr __at(0xAD) ADCCON;    // ADC Control Register
 __sfr __at(0xAE) ADCVL;     // ADC Value Low Register
 __sfr __at(0xAF) ADCVH;     // ADC Value High Register
 __sfr __at(0xB5) ADCCFG2;   // ADC Configuration Register 2
+__sfr __at (0xC2) OP_CTM1;  // Custom Option Register 1 
+
 
 // PWM Control - Added from manufacturer specs
 __sfr __at(0xD3) PWMCON;    // PWM control register
@@ -172,9 +174,17 @@ __sfr __at(0xFF) OPREG;     // Option register
 __sfr __at(0xDE) UKSFR_DE; // Unknown SFR at 0xDE - Added based on Ghidra analysis
 __sfr __at(0xDF) UKSFR_DF; // Unknown SFR at 0xDF - Added based on Ghidra analysis
 
-// __sfr __at(0x0E) BANK1_R6;  // ADC result low byte (or voltage reading low)
-// __sfr __at(0x0F) BANK1_R7;  // ADC result high byte (or voltage reading high)
+__data __at (0x0E) volatile unsigned char BANK1_R6; // ADC result low byte (or voltage reading low)
+__data __at (0x0F) volatile unsigned char BANK1_R7; // ADC result high byte (or voltage reading high)
 
+// __sfr __at (0xDD) ADC10; // This is for H3
+// __sfr __at (0xDC) ADC1;  // This is for H3
+
+__data __at (0x0E) volatile unsigned char ADC10; // ADC 10-bit result low byte
+__data __at (0x0F) volatile unsigned char ADC1;  // ADC 10-bit result high byte
+
+
+__sfr __at (0xDF) ROMBNK; // ROM Bank Register - Added based on Ghidra analysis
 
 // Extended memory-mapped registers confirmed by Ghidra analysis
 #define exWdT0 (*((volatile unsigned char __xdata *) 0xF698))      // Extended watchdog timer 0

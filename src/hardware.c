@@ -6,7 +6,7 @@
 
  #include "hardware.h"
  
- void hardware_init(void) {
+void hardware_init(void) {
     // This is the main hardware initialization function for the H8 radio.
     // For the H3 it needs to be adapted since the H3 has a different pinout and some different hardware features.
 
@@ -37,7 +37,7 @@
     P5 = 0;
  }
 
- void timer_init(void)
+void timer_init(void)
  {
      /* Timer0 Initialization:
         - Mode 1 (16-bit timer mode)
@@ -57,38 +57,22 @@
      TR0 = 1;            // Start Timer0
  }
  
-// void voltage_check(void) {
-// // Enable global interrupts (equivalent to EA = 1)
-//    EA = 1;
-      
-//    do {
-//       // Maintain system health during delay
-//       watchdog_reset(delay_param);
-//       voltage_monitor();
-      
-//       // Calculate voltage-dependent threshold
-//       // Original: bVar1 = 0x8c - (((BANK1_R7 < 0x2d) << 7) >> 7);
-//       if (BANK1_R7 < 0x2D) {
-//          threshold_val = 0x8C - 1;  // 0x8B when R7 < 0x2D
-//       } else {
-//          threshold_val = 0x8C;      // 0x8C when R7 >= 0x2D
-//       }
-      
-//       // Apply offset to ADC reading and calculate difference
-//       // Original: param_1 = (BANK1_R6 ^ 0x80) - bVar1;
-//       adjusted_reading = BANK1_R6 ^ 0x80;
-//       delay_param = adjusted_reading - threshold_val;
-      
-//       // Continue loop while voltage reading hasn't reached threshold
-//       // Original condition: ((BANK1_R6 ^ 0x80) < bVar1) << 7 < '\0'
-//       // This means: continue while (adjusted_reading < threshold_val)
-      
-//    } while (adjusted_reading < threshold_val);
-// }
 
-// void voltage_monitor(void) {
-//     // Read the ADC values for battery voltage
-//     battery_low = BANK1_R6;  // Low byte of ADC result
-//     battery_high = BANK1_R7; // High byte of ADC result
+void system_delay(void)
+{
+   u16 timeout = 2000;
 
-// }
+   EA = 1; // Enable global interrupts
+   
+   while ((BANK1_R6 ^ 0x80) < ((BANK1_R7 < 0x2D) ? 0x8D : 0x8C)) {
+      watchdog_reset();
+      battery_read();
+
+      // Timeout protection
+      timeout--;
+      if (timeout == 0) {
+         uart_pr_send_byte(0xFF); // Send error byte
+         break;
+      }
+   }
+}
