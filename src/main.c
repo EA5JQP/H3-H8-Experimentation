@@ -88,6 +88,9 @@ void main(void)
                 uart_pr_send_byte(ADC10);   // Send high byte
                 uart_pr_send_byte(ADC1);    // Send low byte  
 
+                uart_pr_check_reception();    // Programming UART (P11)
+                process_pr_uart_commands();  // Process received commands from Programming UART
+
                 delay_ms(6,232);
                 
                 TXLED = 0; // Turn on TX_VLED
