@@ -1,0 +1,40 @@
+#ifndef FONT_H
+#define FONT_H
+
+#include "TA3782F.h"
+#include "types.h"
+#include "lcd.h"
+
+// Display and font definitions
+#define DISPLAY_WIDTH 160
+#define DISPLAY_HEIGHT 128
+
+
+// 16x16 font definitions
+#define FONT_16X16_WIDTH 16
+#define FONT_16X16_HEIGHT 16
+#define FONT_16X16_CHAR_COUNT 10  // 0-9 digits
+#define FONT_16X16_BYTES_PER_CHAR 32  // 16 rows * 2 bytes per row
+
+// Character mapping for digits 0-9
+#define GET_DIGIT_INDEX(c) ((c >= '0' && c <= '9') ? (c - '0') : 0)
+
+// 16x16 font functions
+void render_16x16_char(u8 x, u8 y, char c);
+void render_16x16_string(u8 x, u8 y, const char *str);
+void render_16x16_number(u8 x, u8 y, u16 number);
+
+
+// Utility functions
+void clear_area(u8 x1, u8 y1, u8 x2, u8 y2);
+
+// Demo functions
+void dual_font_demo(void);
+void test_fonts_separate(void);
+
+// LCD interface functions (must be implemented elsewhere)
+void lcd_set_window(u8 x1, u8 y1, u8 x2, u8 y2);
+void lcd_send_data(u8 data);
+
+
+#endif // FONT_H

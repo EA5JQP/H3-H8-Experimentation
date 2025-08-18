@@ -17,6 +17,7 @@
 
 u16 battery_read(void);
 u16 battery_read_bnkreg(void);
+u16 battery_read_voltage(void);
 
 
 

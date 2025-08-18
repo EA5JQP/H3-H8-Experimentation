@@ -12,25 +12,26 @@ void hardware_init(void) {
 
     // Port Configuration Registers
     P0CON = 0xFC;
+
     // P1CON is not initialized in the decompiled code 
     // Looks like the address is assigned to P1CON in the datasheet incorrectly, since 0x96 is used for UART 1 Control 
     // The keypad configuration appears incomplete in the decompiled code because ports 17, 16, 15 and 14 must be set to OUTPUT mode
     // yet the radio obviously works, indicating there's configuration happening elsewhere that we haven't identified yet.
     P2CON = 0xFD; 
-    P3CON = 0x60;
-    P4CON = 0xFE;
-    P5CON = 0xFF;
 
     // Port Pull-up/Pull-down Control  
     P2PH = 0x7E;
+    P3CON = 0x60;
+   //  P4CON = 0xFE;
 
     // Extended Pin Mode Configuration
     exP40Mode = 1;  
 
+    P5CON = 0xFF;
+
     // Port Initial Values
     P0 = 0;
-    P1 = 10;  
-    // P1 = 10 (0x0A in hex = 00001010 binary), which sets P11 = 1 (UART RX), P13 = 1 (UART TX)
+    P1 = 10;  // P1 = 10 (0x0A in hex = 00001010 binary), which sets P11 = 1 (UART RX), P13 = 1 (UART TX)
     P2 = 0;
     P3 = 0; 
     P4 = 0;
@@ -57,22 +58,3 @@ void timer_init(void)
      TR0 = 1;            // Start Timer0
  }
  
-
-void system_delay(void)
-{
-   u16 timeout = 2000;
-
-   EA = 1; // Enable global interrupts
-   
-   while ((BANK1_R6 ^ 0x80) < ((BANK1_R7 < 0x2D) ? 0x8D : 0x8C)) {
-      watchdog_reset();
-      battery_read();
-
-      // Timeout protection
-      timeout--;
-      if (timeout == 0) {
-         uart_pr_send_byte(0xFF); // Send error byte
-         break;
-      }
-   }
-}

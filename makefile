@@ -13,6 +13,10 @@ BIN_PADDED = ${DIR_BIN}/${PROJ_NAME}_padded.bin
 # Compiler
 CC = sdcc
 CFLAGS = -I${DIR_INC} --code-size ${FIRMWARE_SIZE}
+CFLAGS += --model-small          # Use small memory model
+CFLAGS += --stack-auto           # Use automatic stack allocation
+CFLAGS += --int-long-reent       # Reentrant functions for better memory usage
+CFLAGS += --float-reent          # Reentrant float functions
 
 # Sources and objects
 SRCS = $(wildcard ${DIR_SRC}/*.c)

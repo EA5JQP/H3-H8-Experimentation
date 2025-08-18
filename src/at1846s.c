@@ -134,7 +134,6 @@ void at1846s_spi_transceive(u8 spi_command, u8 *reg_low, u8 *reg_high) __critica
     LE1846 = 1;
 }
 
-
 u8 at1846s_spi_read_byte(void) __critical {
     
     // This function reads a byte from the AT1846S chip via SPI.
@@ -163,4 +162,33 @@ u8 at1846s_spi_read_byte(void) __critical {
     return result;
 }
 
+void at1846s_set_frequency(u32 freq_khz)
+{
+    u32 freq_value;
+    u16 freq_high, freq_low;
+    u8 data_high, data_low;
 
+    // Check if frequency is in valid range (50 MHz – 1000 MHz)
+    if (freq_khz < 50000 || freq_khz > 1000000) {
+        return;  // Invalid frequency; do nothing
+    }
+
+    // Convert frequency in kHz to internal format (f_khz * 16)
+    freq_value = freq_khz * 16;
+
+    // Split into high and low parts
+    freq_high = (u16)((freq_value >> 16) & 0x3FFF);  // upper 14 bits
+    freq_low  = (u16)(freq_value & 0xFFFF);          // lower 16 bits
+
+    // Write high frequency register (0x29)
+    data_high = (u8)(freq_high >> 8);
+    data_low  = (u8)(freq_high & 0xFF);
+    at1846s_write_register(data_low, data_high, 0x29);
+    delay_ms(0, 10);
+
+    // Write low frequency register (0x2A)
+    data_high = (u8)(freq_low >> 8);
+    data_low  = (u8)(freq_low & 0xFF);
+    at1846s_write_register(data_low, data_high, 0x2A);
+    delay_ms(0, 10);
+}

@@ -170,21 +170,16 @@ __sfr __at(0xFD) CRCREG;    // CRC register
 __sfr __at(0xFE) OPINX;     // Option index register
 __sfr __at(0xFF) OPREG;     // Option register
 
-
 __sfr __at(0xDE) UKSFR_DE; // Unknown SFR at 0xDE - Added based on Ghidra analysis
 __sfr __at(0xDF) UKSFR_DF; // Unknown SFR at 0xDF - Added based on Ghidra analysis
 
 __data __at (0x0E) volatile unsigned char BANK1_R6; // ADC result low byte (or voltage reading low)
 __data __at (0x0F) volatile unsigned char BANK1_R7; // ADC result high byte (or voltage reading high)
-
-// __sfr __at (0xDD) ADC10; // This is for H3
-// __sfr __at (0xDC) ADC1;  // This is for H3
+__data __at (0x0C) volatile unsigned char BANK1_R4; // ADC result high byte (or voltage reading high)
+__data __at (0x03) volatile unsigned char BANK0_R3; // ADC result high byte (or voltage reading high)
 
 __data __at (0x0E) volatile unsigned char ADC10; // ADC 10-bit result low byte
 __data __at (0x0F) volatile unsigned char ADC1;  // ADC 10-bit result high byte
-
-
-__sfr __at (0xDF) ROMBNK; // ROM Bank Register - Added based on Ghidra analysis
 
 // Extended memory-mapped registers confirmed by Ghidra analysis
 #define exWdT0 (*((volatile unsigned char __xdata *) 0xF698))      // Extended watchdog timer 0
@@ -196,11 +191,11 @@ __sfr __at (0xDF) ROMBNK; // ROM Bank Register - Added based on Ghidra analysis
 #define exP04Mode (*((volatile unsigned char __xdata *) 0xF004))   // Extended P04 mode (P0.4 is used for LCD SCLK in H3)
 #define exP05Mode (*((volatile unsigned char __xdata *) 0xF005))   // Extended P05 mode (P0.5 is used for LCD SDA in H3)
 #define exP02Mode (*((volatile unsigned char __xdata *) 0xF002))   // Extended P06 mode (P0.2 is used for APC in H8)
-#define exP11Mode (*((volatile unsigned char __xdata *)0xF011))     // P1.1 pin mode
-#define exP13Mode (*((volatile unsigned char __xdata *)0xF013))     // P1.3 pin mode
-#define exP43Mode (*((volatile unsigned char __xdata *)0xF123))     // P1.2 pin mode (used for UART 1 RX in H3)
-#define exP20Mode  (*((volatile unsigned char __xdata *)0xF020))     // P2.0 pin mode  
-#define exP21Mode  (*((volatile unsigned char __xdata *)0xF021))     // P2.1 pin mode
+#define exP11Mode (*((volatile unsigned char __xdata *) 0xF011))   // P1.1 pin mode
+#define exP13Mode (*((volatile unsigned char __xdata *) 0xF013))   // P1.3 pin mode
+#define exP43Mode (*((volatile unsigned char __xdata *) 0xF123))   // P1.2 pin mode (used for UART 1 RX in H3)
+#define exP20Mode (*((volatile unsigned char __xdata *) 0xF020))   // P2.0 pin mode  
+#define exP21Mode (*((volatile unsigned char __xdata *) 0xF021))   // P2.1 pin mode
 
 
 // External UART 1 (P11/P13) - Validated addresses

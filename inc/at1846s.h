@@ -22,5 +22,6 @@ void at1846s_init(void);
 void at1846s_write_register(u8 data_low, u8 data_high, u8 reg_addr);
 u8 at1846s_spi_read_byte(void);
 void at1846s_spi_transceive(u8 spi_command, u8 *reg_low, u8 *reg_high);
+void at1846s_set_frequency(u32 freq_khz);
 
 #endif // AT1846S_H

@@ -10,8 +10,6 @@
 
 // Function prototypes
 void hardware_init(void);
-void timer_init(void);
-void system_delay(void);
- 
+void timer_init(void); 
  
 #endif // HARDWARE_H
