@@ -22,7 +22,7 @@ void hardware_init(void) {
     // Port Pull-up/Pull-down Control  
     P2PH = 0x7E;
     P3CON = 0x60;
-   //  P4CON = 0xFE;
+    P4CON = 0xFE;
 
     // Extended Pin Mode Configuration
     exP40Mode = 1;  

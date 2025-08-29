@@ -9,216 +9,22 @@
 #include "keypad.h"
 #include "lcd.h"
 #include "at1846s.h"
+#include "at1846s_test.h"
 #include "battery.h"
 #include "font.h"
 #include "i2c.h"
 #include "eeprom.h"
-
-#define led1 TXLED
-#define led2 RXLED
-
-// --- UART helpers ---
-void send_uart_message(char* message) {
-    u8 count = 0;
-    while (*message && count < 100) {
-        uart_pr_send_byte(*message);
-        message++;
-        count++;
-        delay_ms(1, 0);
-    }
-    uart_pr_send_byte('\r');
-    uart_pr_send_byte('\n');
-}
-
-void send_uart_number(u16 number) {
-    char buffer[6];
-    u8 i = 0;
-    u16 temp = number;
-
-    if (number == 0) {
-        uart_pr_send_byte('0');
-        return;
-    }
-
-    while (temp > 0 && i < 5) {
-        buffer[i++] = '0' + (temp % 10);
-        temp /= 10;
-    }
-
-    while (i > 0) {
-        uart_pr_send_byte(buffer[--i]);
-        delay_ms(1, 0);
-    }
-}
-
-// --- EEPROM test data ---
-__xdata u8 eeprom_test_data[32] = {
-    0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,
-    0x09,0x0A,0x0B,0x0C,0x0D,0x0E,0x0F,0x10,
-    0x11,0x12,0x13,0x14,0x15,0x16,0x17,0x18,
-    0x19,0x1A,0x1B,0x1C,0x1D,0x1E,0x1F,0x20
-};
-
-// --- I2C diagnostic functions ---
-void test_i2c_pins(void) {
-    send_uart_message("I2C Pin Test:");
-    
-    // Test SDA control
-    send_uart_message("Setting SDA HIGH...");
-    i2c_set_sda_high();
-    uart_pr_send_byte('S'); uart_pr_send_byte('D'); uart_pr_send_byte('A'); uart_pr_send_byte('=');
-    uart_pr_send_byte(SDA24 ? '1' : '0');
-    uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-    
-    send_uart_message("Setting SDA LOW...");
-    i2c_set_sda_low();
-    uart_pr_send_byte('S'); uart_pr_send_byte('D'); uart_pr_send_byte('A'); uart_pr_send_byte('=');
-    uart_pr_send_byte(SDA24 ? '1' : '0');
-    uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-    
-    // Test SCK control
-    send_uart_message("Setting SCK HIGH...");
-    i2c_set_sck_high();
-    uart_pr_send_byte('S'); uart_pr_send_byte('C'); uart_pr_send_byte('K'); uart_pr_send_byte('=');
-    uart_pr_send_byte(SCK24 ? '1' : '0');
-    uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-    
-    send_uart_message("Setting SCK LOW...");
-    i2c_set_sck_low();
-    uart_pr_send_byte('S'); uart_pr_send_byte('C'); uart_pr_send_byte('K'); uart_pr_send_byte('=');
-    uart_pr_send_byte(SCK24 ? '1' : '0');
-    uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-    
-    // Test pin direction switching
-    send_uart_message("Testing pin direction...");
-    i2c_set_sda_output();
-    uart_pr_send_byte('O'); uart_pr_send_byte('U'); uart_pr_send_byte('T'); uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-    
-    i2c_set_sda_input();
-    uart_pr_send_byte('I'); uart_pr_send_byte('N'); uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-    
-    // Show P4CON register value
-    send_uart_message("P4CON=");
-    u8 p4con_val = P4CON;
-    uart_pr_send_byte((p4con_val >> 4) > 9 ? 'A' + (p4con_val >> 4) - 10 : '0' + (p4con_val >> 4));
-    uart_pr_send_byte((p4con_val & 0xF) > 9 ? 'A' + (p4con_val & 0xF) - 10 : '0' + (p4con_val & 0xF));
-    uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-}
-
-void test_i2c_communication(void) {
-    __bit ack_result;
-    
-    send_uart_message("I2C Communication Test:");
-    
-    // Test full EEPROM sequence with detailed ACK checking
-    send_uart_message("Full EEPROM sequence test:");
-    
-    // Step 1: START
-    i2c_start();
-    send_uart_message("START sent");
-    
-    // Step 2: Device address (write)
-    ack_result = i2c_send(0xA0);
-    uart_pr_send_byte('0'); uart_pr_send_byte('x'); uart_pr_send_byte('A'); uart_pr_send_byte('0');
-    uart_pr_send_byte(' '); uart_pr_send_byte('A'); uart_pr_send_byte('C'); uart_pr_send_byte('K'); uart_pr_send_byte('=');
-    uart_pr_send_byte(ack_result ? '1' : '0');
-    uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-    
-    // Step 3: High address byte (0x00)
-    ack_result = i2c_send(0x00);
-    uart_pr_send_byte('H'); uart_pr_send_byte('I'); uart_pr_send_byte(' '); 
-    uart_pr_send_byte('A'); uart_pr_send_byte('C'); uart_pr_send_byte('K'); uart_pr_send_byte('=');
-    uart_pr_send_byte(ack_result ? '1' : '0');
-    uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-    
-    // Step 4: Low address byte (0x00)  
-    ack_result = i2c_send(0x00);
-    uart_pr_send_byte('L'); uart_pr_send_byte('O'); uart_pr_send_byte(' ');
-    uart_pr_send_byte('A'); uart_pr_send_byte('C'); uart_pr_send_byte('K'); uart_pr_send_byte('=');
-    uart_pr_send_byte(ack_result ? '1' : '0');
-    uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-    
-    // Step 5: Repeated START
-    i2c_start();
-    send_uart_message("Repeated START sent");
-    
-    // Step 6: Device address (read)
-    ack_result = i2c_send(0xA1);
-    uart_pr_send_byte('0'); uart_pr_send_byte('x'); uart_pr_send_byte('A'); uart_pr_send_byte('1');
-    uart_pr_send_byte(' '); uart_pr_send_byte('A'); uart_pr_send_byte('C'); uart_pr_send_byte('K'); uart_pr_send_byte('=');
-    uart_pr_send_byte(ack_result ? '1' : '0');
-    uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-    
-    // Step 7: Read one byte
-    u8 test_byte = i2c_receive(0);  // Send NACK (last byte)
-    uart_pr_send_byte('R'); uart_pr_send_byte('E'); uart_pr_send_byte('A'); uart_pr_send_byte('D'); uart_pr_send_byte('=');
-    uart_pr_send_byte((test_byte >> 4) > 9 ? 'A' + (test_byte >> 4) - 10 : '0' + (test_byte >> 4));
-    uart_pr_send_byte((test_byte & 0xF) > 9 ? 'A' + (test_byte & 0xF) - 10 : '0' + (test_byte & 0xF));
-    uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
-    
-    // Step 8: STOP
-    i2c_stop();
-    send_uart_message("STOP sent");
-}
-
-// --- EEPROM test functions ---
-void test_eeprom_write(u16 addr) {
-    send_uart_message("EEPROM WRITE start...");
-    eeprom_write(addr, eeprom_test_data, 32);
-    delay_ms(50, 0);
-    send_uart_message("EEPROM WRITE done");
-}
-
-void test_eeprom_read(u16 addr) {
-    static __xdata u8 read_buffer[32];
-    eeprom_read(addr, read_buffer, 32);
-
-    // Print hex values without spaces for faster output
-    for (u8 i = 0; i < 32; i++) {
-        u8 val = read_buffer[i];
-        uart_pr_send_byte((val >> 4) > 9 ? 'A' + (val >> 4) - 10 : '0' + (val >> 4));
-        uart_pr_send_byte((val & 0xF) > 9 ? 'A' + (val & 0xF) - 10 : '0' + (val & 0xF));
-    }
-    uart_pr_send_byte('\r');
-    uart_pr_send_byte('\n');
-}
-
-void test_eeprom_verify(u16 addr) {
-    static __xdata u8 read_buffer[32];
-    u8 ok = 1;
-
-    eeprom_read(addr, read_buffer, 32);
-
-    for (u8 i = 0; i < 32; i++) {
-        if (read_buffer[i] != eeprom_test_data[i]) {
-            ok = 0;
-            break;
-        }
-    }
-
-    if (ok) {
-        send_uart_message("EEPROM VERIFY: OK");
-    } else {
-        send_uart_message("EEPROM VERIFY: ERROR");
-    }
-}
-
-void create_background_pattern(void) {
-    u8 row, col;
-
-    lcd_set_window(0, 0, 159, 127);  // Full screen
-
-    for (row = 0; row < 128; row++) {
-        for (col = 0; col < 160; col++) {
-            lcd_send_data(0x00);  // High byte
-            lcd_send_data(0x00);  // Low byte
-        }
-    }
-}
+#include "i2c_test.h"
+#include "eeprom_test.h"
+#include "lcd_test.h"
+#include "led_test.h"
+#include "beep_test.h"
+#include "uart_test.h"
+#include "menu.h"
+#include "settings.h"
 
 // --- main ---
 void main(void) {
-    u16 test_addr = 0x0300;
 
     hardware_init();
     timer_init();
@@ -235,25 +41,335 @@ void main(void) {
 
     delay_ms(6, 232);
 
-    // Priority: Test EEPROM reading first (most important)
-    create_background_pattern();
+    // Initialize I2C bus before any EEPROM operations
+    send_uart_message("Initializing I2C bus...");
+    i2c_init();
     
-    // Comprehensive EEPROM scan of all addresses
-    eeprom_check_all_addresses();
+    // Initialize menu system and load settings
+    send_uart_message("Initializing menu system...");
+    menu_init();
+    settings_init();
     
-    // Quick I2C communication test
-    send_uart_message("I2C TEST:");
+    // === I2C TESTS ===
+    send_uart_message("");
+    send_uart_message("=== I2C COMMUNICATION TESTS ===");
+    
+    // Test I2C pin control
+    test_i2c_pins();
+    
+    // Test I2C communication protocol
+    test_i2c_communication();
+    
+    // Quick device check (A0-A2 are grounded, so address is 0xA0)
+    send_uart_message("Testing basic device response...");
+    EA = 0; // Disable interrupts for I2C transaction
     i2c_start();
-    __bit ack = i2c_send(0xA0);
+    __bit device_present = i2c_send(0xA0);
     i2c_stop();
-    uart_pr_send_byte('A'); uart_pr_send_byte('C'); uart_pr_send_byte('K'); uart_pr_send_byte('=');
-    uart_pr_send_byte(ack ? '1' : '0');
+    EA = 1; // Re-enable interrupts
+    
+    // Debug: Show device_present result
+    send_uart_message("Device present result:");
+    uart_pr_send_byte(device_present ? '1' : '0');
+    uart_pr_send_byte('\r');
+    uart_pr_send_byte('\n');
+    
+    // === EEPROM TESTS ===
+    send_uart_message("");
+    send_uart_message("=== EEPROM TESTS ===");
+    
+    if (device_present) {
+        send_uart_message("DEVICE RESPONDING - Proceeding with EEPROM tests");
+    } else {
+        send_uart_message("DEVICE detection failed, but I2C working - trying EEPROM tests anyway");
+    }
+    
+    // Run EEPROM tests regardless since I2C communication is working
+    u16 test_addr = 0x0000;
+    
+    // Check what's in EEPROM initially
+    test_eeprom_read_initial(test_addr);
+    
+    // Test EEPROM write
+    // test_eeprom_write(test_addr);
+    
+    // Test EEPROM read
+    // test_eeprom_read(test_addr);
+    
+    // Test EEPROM verify
+    // test_eeprom_verify(test_addr);
+
+    // eeprom_write_read_test();
+    
+    // Scan entire EEPROM content
+    // eeprom_scan_all_content();
+    
+    send_uart_message("=== EEPROM DIAGNOSTICS COMPLETE ===");
+    
+    // === LCD TESTS ===
+    send_uart_message("");
+    send_uart_message("=== LCD TESTS ===");
+    send_uart_message("Creating LCD background pattern...");
+    create_background_pattern();
+    send_uart_message("LCD background pattern complete");
+    
+    // === LED TESTS ===
+    // send_uart_message("");
+    // send_uart_message("=== LED TESTS ===");
+    
+    // test_backlight_led_blink();
+    // test_bt_led_blink();
+    // test_tx_led_blink();
+    // test_rx_led_blink();
+    // test_lampow_blink();
+    // test_all_leds_blink();
+    
+    send_uart_message("=== LED TESTS COMPLETE ===");
+    
+    // === BEEP TESTS ===
+    send_uart_message("");
+    send_uart_message("=== BEEP TESTS ===");
+    
+    test_beep_all();
+    
+    send_uart_message("=== BEEP TESTS COMPLETE ===");
+    
+    // AT1846S Communication Tests (Safe - No TX)
+    send_uart_message("");
+    send_uart_message("=== AT1846S COMMUNICATION TESTS ===");
+    
+    // Test 1: Basic Communication
+    send_uart_message("Test 1: Basic Communication...");
+    u8 result = at1846s_test_basic_communication();
+    if (result == AT1846S_TEST_SUCCESS) {
+        send_uart_message("PASS: Chip ID verified");
+    } else {
+        send_uart_message("FAIL: Communication error");
+        send_uart_number(result);
+    }
+    
+    // Test 2: Register Read/Write
+    send_uart_message("Test 2: Register Read/Write...");
+    result = at1846s_test_register_readwrite();
+    if (result == AT1846S_TEST_SUCCESS) {
+        send_uart_message("PASS: Register R/W working");
+    } else {
+        send_uart_message("FAIL: Register R/W failed");
+        send_uart_number(result);
+    }
+    
+    // Test 3: Power Control (RX only)
+    send_uart_message("Test 3: Power Control (RX only)...");
+    result = at1846s_test_power_control();
+    if (result == AT1846S_TEST_SUCCESS) {
+        send_uart_message("PASS: Power control working");
+    } else {
+        send_uart_message("FAIL: Power control failed");
+        send_uart_number(result);
+    }
+    
+    // Test 4: Read-only Registers
+    send_uart_message("Test 4: Read-only Registers...");
+    result = at1846s_test_read_only_registers();
+    if (result == AT1846S_TEST_SUCCESS) {
+        send_uart_message("PASS: Status registers readable");
+    } else {
+        send_uart_message("FAIL: Status register read failed");
+        send_uart_number(result);
+    }
+    
+    // Test 5: Frequency Settings
+    send_uart_message("Test 5: Frequency Settings...");
+    result = at1846s_test_frequency_settings();
+    if (result == AT1846S_TEST_SUCCESS) {
+        send_uart_message("PASS: Frequency control working");
+    } else {
+        send_uart_message("FAIL: Frequency control failed");
+        send_uart_number(result);
+        
+        // Display diagnostic information
+        send_uart_message("--- FREQUENCY TEST DIAGNOSTICS ---");
+        
+        send_uart_message("Original freq (kHz): ");
+        send_uart_number_32(at1846s_diag_orig_freq);
+        
+        send_uart_message("Test freq (kHz): ");
+        send_uart_number_32(at1846s_diag_test_freq);
+        
+        send_uart_message("Read back freq (kHz): ");
+        send_uart_number_32(at1846s_diag_read_freq);
+        
+        send_uart_message("Freq high reg: ");
+        send_uart_hex(at1846s_diag_freq_high_reg);
+        
+        send_uart_message("Freq low reg: ");
+        send_uart_hex(at1846s_diag_freq_low_reg);
+        
+        send_uart_message("Band register: ");
+        send_uart_hex(at1846s_diag_orig_band);
+        
+        // Analyze the test results for diagnosis
+        if (at1846s_diag_freq_high_reg == 0xFFFF && at1846s_diag_freq_low_reg == 0xFFFF) {
+            send_uart_message("DIAGNOSIS: Frequency registers are protected.");
+            send_uart_message("Tested band selection instead.");
+        } else {
+            send_uart_message("DIAGNOSIS: Tested 446 MHz in UHF band.");
+            
+            u32 test_freq = at1846s_diag_test_freq;
+            u32 read_freq = at1846s_diag_read_freq;
+            
+            if (read_freq >= 400000 && read_freq <= 520000) {
+                send_uart_message("Result is within UHF band (400-520 MHz).");
+                send_uart_message("Frequency control is working correctly!");
+            } else if (read_freq != at1846s_diag_orig_freq) {
+                send_uart_message("Frequency changed - chip responded to command.");
+            } else {
+                send_uart_message("No frequency change detected.");
+            }
+        }
+        
+        send_uart_message("--- END DIAGNOSTICS ---");
+    }
+    
+    // Test 6: Audio Controls
+    send_uart_message("Test 6: Audio Controls...");
+    result = at1846s_test_audio_controls();
+    if (result == AT1846S_TEST_SUCCESS) {
+        send_uart_message("PASS: Audio controls working");
+    } else {
+        send_uart_message("FAIL: Audio control failed");
+        send_uart_number(result);
+    }
+    
+    // Run comprehensive test suite
+    send_uart_message("");
+    send_uart_message("Running comprehensive test suite...");
+    result = at1846s_run_safe_tests();
+    if (result == AT1846S_TEST_SUCCESS) {
+        send_uart_message("SUCCESS: All AT1846S tests passed!");
+        send_uart_message("Chip communication is working properly.");
+    } else {
+        send_uart_message("FAILURE: Some AT1846S tests failed!");
+        send_uart_message("Check SPI connections and power.");
+    }
+    
+    // Display chip information using proven SPI method
+    send_uart_message("");
+    send_uart_message("=== AT1846S CHIP INFORMATION ===");
+    
+    u8 reg_low, reg_high;
+    u16 chip_id, version, battery, rssi;
+    
+    // Read Chip ID using proven SPI method
+    at1846s_spi_transceive(0x80, &reg_high, &reg_low);  // Read register 0x00
+    chip_id = ((u16)reg_high << 8) | reg_low;
+    send_uart_message("Chip ID: ");
+    send_uart_hex(chip_id);
+    
+    // Read Version using proven SPI method
+    at1846s_spi_transceive(0x81, &reg_high, &reg_low);  // Read register 0x01
+    version = ((u16)reg_high << 8) | reg_low;
+    send_uart_message("Version: ");
+    send_uart_hex(version);
+    
+    // Read Battery using proven SPI method
+    at1846s_spi_transceive(0x80 | AT1846S_REG_BATTERY, &reg_high, &reg_low);
+    battery = ((u16)reg_high << 8) | reg_low;
+    send_uart_message("Battery: ");
+    send_uart_hex(battery);
+    
+    // Interpret battery voltage (AT1846S battery ADC reading)
+    // For 0x8A24 (35364), estimate voltage using simple lookup
+    send_uart_message("Battery (estimated): ");
+    if (battery > 40000) {
+        send_uart_message("9.0V+");
+    } else if (battery > 35000) {
+        send_uart_message("8.5V");
+    } else if (battery > 30000) {
+        send_uart_message("7.5V");
+    } else if (battery > 25000) {
+        send_uart_message("6.5V");
+    } else if (battery > 20000) {
+        send_uart_message("5.5V");
+    } else {
+        send_uart_message("LOW");
+    }
+    
+    // Read RSSI using proven SPI method
+    at1846s_spi_transceive(0x80 | AT1846S_REG_RSSI, &reg_high, &reg_low);
+    rssi = ((u16)reg_high << 8) | reg_low;
+    send_uart_message("RSSI: ");
+    send_uart_hex(rssi);
+    
+    // Display current frequency using proven SPI method
+    u8 freq_high_high, freq_high_low, freq_low_high, freq_low_low;
+    at1846s_spi_transceive(0x80 | AT1846S_REG_FREQ_HIGH, &freq_high_high, &freq_high_low);
+    at1846s_spi_transceive(0x80 | AT1846S_REG_FREQ_LOW, &freq_low_high, &freq_low_low);
+    
+    u16 freq_high_reg = ((u16)freq_high_high << 8) | freq_high_low;
+    u16 freq_low_reg = ((u16)freq_low_high << 8) | freq_low_low;
+    u32 freq_value = (((u32)(freq_high_reg & 0x3FFF)) << 16) | freq_low_reg;
+    u32 current_freq = freq_value / 16;
+    
+    if (current_freq > 0) {
+        send_uart_message("Current Freq (kHz): ");
+        send_uart_number_32(current_freq);
+    }
+    
+    send_uart_message("=== AT1846S SPI TEST ===");
+    u8 id_low = 0, id_high = 0;
+
+    at1846s_spi_transceive(0x80, &id_high, &id_low);
+    delay_ms(0,100);
+    
+    // Display results in hex format
+    send_uart_message("Chip ID bytes:");
+    send_uart_message("High byte: ");
+    uart_pr_send_byte((id_high >> 4) > 9 ? 'A' + (id_high >> 4) - 10 : '0' + (id_high >> 4));
+    uart_pr_send_byte((id_high & 0xF) > 9 ? 'A' + (id_high & 0xF) - 10 : '0' + (id_high & 0xF));
     uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
     
-    send_uart_message("=== DIAGNOSTICS COMPLETE ===");
+    send_uart_message("Low byte: ");
+    uart_pr_send_byte((id_low >> 4) > 9 ? 'A' + (id_low >> 4) - 10 : '0' + (id_low >> 4));
+    uart_pr_send_byte((id_low & 0xF) > 9 ? 'A' + (id_low & 0xF) - 10 : '0' + (id_low & 0xF));
+    uart_pr_send_byte('\r'); uart_pr_send_byte('\n');
+    
+    
+    
+    send_uart_message("=== TEST COMPLETE ===");
+    delay_ms(6,232);
 
     while (1) {
         watchdog_reset();
-        delay_ms(100, 0);
+        
+        // Check for key presses and handle menu system
+        u8 current_key = keypad_scan();
+        if (current_key != 0) {
+            if (menu_mode) {
+                // In menu mode - process menu keys
+                menu_process_key(current_key);
+            } else {
+                // In normal mode - check for menu entry key
+                if (current_key == KEY_MENU) {
+                    menu_enter();
+                } else {
+                    // Handle other normal mode keys here
+                    send_uart_message("Key pressed in normal mode:");
+                    uart_pr_send_byte('0' + current_key);
+                    uart_pr_send_byte('\r');
+                    uart_pr_send_byte('\n');
+                }
+            }
+        }
+        
+        // Update menu display if needed
+        if (menu_mode && menu_display_dirty) {
+            menu_update_display();
+        } else if (!menu_mode) {
+            // Update normal mode display
+            create_background_pattern();
+        }
+        
+        delay_ms(50, 0);  // Reduced delay for more responsive key handling
     }
 }

@@ -1,54 +1,138 @@
+
 #include "i2c.h"
 
 #define __nop() __asm nop __endasm
 
-// // Initialize I2C pins (call once at startup)
-// void i2c_init(void) {
-//     // Configure P44 (SCK) and P45 (SDA) for I2C
-//     // Try quasi-bidirectional mode for both pins like original Ghidra code
-//     // P44: quasi-bidirectional (11) - bits 3:2 = 11
-//     // P45: quasi-bidirectional (11) - bits 5:4 = 11  
-//     P4CON = (P4CON & 0xC3) | 0x3C;  // Clear bits 5:2, set P45=11, P44=11
-//     SDA24 = 1;                      // Set both pins high (idle state)
-//     SCK24 = 1;
-// }
+// --- Bus Initialization ---
 
-// Reset I2C bus to clean state
-void i2c_bus_reset(void) {
-    // Ensure we're in output mode
+void i2c_init(void) {
+    // Initialize I2C bus to a known good state
+    // Both SDA and SCL should be high (idle state) with proper pin configuration
+    
+    // Set pins to output mode first
     i2c_set_sda_output();
     
-    // Set both lines high (idle state)
+    // Ensure both lines are high (bus idle state)
     i2c_set_sda_high();
     i2c_set_sck_high();
+    
+    // Brief delay to stabilize
+    i2c_delay();
     i2c_delay();
     
-    // Generate several clock pulses to clear any stuck devices
-    for (u8 i = 0; i < 9; i++) {
-        i2c_set_sck_low();
-        i2c_delay();
-        i2c_set_sck_high(); 
-        i2c_delay();
-    }
-    
-    // Send proper STOP condition
-    i2c_set_sda_low();
-    i2c_delay();
-    i2c_set_sck_high();
-    i2c_delay();
-    i2c_set_sda_high();
-    i2c_delay();
+    // Reset bus in case it was stuck in a bad state
+    i2c_bus_reset();
 }
 
-// Basic delay function - match original delay_20_cycles()
+// --- Core Protocol Functions ---
+
+void i2c_start(void) {
+    // A START condition is a HIGH-to-LOW transition of SDA while SCL is HIGH.
+    // Note: Interrupt control is handled at the transaction level, not per function
+    i2c_set_sda_output();
+    i2c_set_sda_high();
+    i2c_set_sck_high();
+    i2c_delay();
+    i2c_set_sda_low();
+    i2c_set_sck_low();
+}
+
+void i2c_stop(void) {
+    // A STOP condition is a LOW-to-HIGH transition of SDA while SCL is HIGH.
+    // Note: Interrupt control is handled at the transaction level, not per function
+    i2c_set_sda_output();
+    i2c_set_sda_low();
+    i2c_set_sck_low(); // Ensure SCL is low before raising SDA
+    i2c_delay();    
+    i2c_set_sck_high();
+    i2c_set_sda_high();
+}
+
+__bit i2c_send(u8 byte) {
+    u8 i;
+    __bit ack;
+
+    i2c_set_sda_output(); // Master drives the bus to send data.
+
+    // Send 8 bits, MSB first.
+    for (i = 0; i < 8; i++) {
+        if (byte & 0x80) {
+            i2c_set_sda_high();
+        } else {
+            i2c_set_sda_low();
+        }
+        byte <<= 1;
+        i2c_set_sck_high(); // Pulse clock
+        i2c_set_sck_low();
+    }
+
+    // Check for ACK from the slave.
+    i2c_set_sda_input(); // Release the bus for the slave to respond.
+    i2c_set_sck_high();
+    ack = !i2c_read_sda(); // Read ACK bit. ACK is when SDA is LOW.
+    i2c_set_sck_low();
+
+    return ack; // Return 1 for ACK (success), 0 for NACK (failure).
+}
+
+u8 i2c_receive(__bit send_nack) {
+    u8 i, received_byte = 0;
+
+    i2c_set_sda_input(); // Release the bus for the slave to send data.
+
+    // Read 8 bits, MSB first.
+    for (i = 0; i < 8; i++) {
+        received_byte <<= 1;
+        i2c_set_sck_high();
+        if (i2c_read_sda()) {
+            received_byte |= 1;
+        }
+        i2c_set_sck_low();
+    }
+
+    // --- FIXED: Send ACK or NACK from Master ---
+    i2c_set_sda_output(); // Master takes control to send ACK/NACK.
+    if (send_nack) {
+        i2c_set_sda_high(); // NACK: Master leaves SDA high.
+    } else {
+        i2c_set_sda_low();  // ACK: Master pulls SDA low.
+    }
+    i2c_set_sck_high(); // Pulse clock for the slave to read the ACK/NACK.
+    i2c_set_sck_low();
+    i2c_set_sda_high(); // Release the bus after sending ACK/NACK.
+
+    return received_byte;
+}
+
+// --- High-Level Read/Write Functions ---
+
+__bit i2c_write(const u8 *source, u8 length) {
+    while (length--) {
+        if (!i2c_send(*source++)) {
+            return 0; // NACK received, abort
+        }
+    }
+    return 1; // All bytes sent successfully
+}
+
+void i2c_read(u8* destination, u8 length) {
+    for (u8 i = 0; i < length; i++) {
+        // Send NACK only on the very last byte to be read.
+        destination[i] = i2c_receive(i == (length - 1));
+    }
+}
+
+// --- Low-Level Pin and Delay Control ---
+
 void i2c_delay(void) {
-    u8 counter = 0x2d;  
+    // This provides a software delay. The exact duration depends on the MCU clock speed.
+    // For a 12T 8051 at 12MHz, this is roughly 50us.
+    u8 counter = 0x2d;
     while (counter--) {
         __nop();
     }
 }
 
-// Low-level pin control functions
 void i2c_set_sda_high(void) {
     SDA24 = 1;
     i2c_delay();
@@ -57,15 +141,6 @@ void i2c_set_sda_high(void) {
 void i2c_set_sda_low(void) {
     SDA24 = 0;
     i2c_delay();
-}
-
-// Combined SDA function (replaces missing i2c_set_sda)
-void i2c_set_sda(u8 value) {
-    if (value) {
-        i2c_set_sda_high();
-    } else {
-        i2c_set_sda_low();
-    }
 }
 
 void i2c_set_sck_high(void) {
@@ -78,118 +153,43 @@ void i2c_set_sck_low(void) {
     i2c_delay();
 }
 
+// --- Hardware-Specific Port Configuration ---
+
 void i2c_set_sda_input(void) {
-    // Use exact Ghidra values - the original firmware expects these specific configurations
-    P4CON = 0xDE;  // Original Ghidra value includes correct P43 settings
+    // Sets the SDA pin to input mode.
+    // The value 0xDE is specific to your microcontroller's port configuration register.
+    // 11011110 = Pin 45 is deactivated => 0: Pxy is the input mode (initial value at power-on)
+    P4CON = 0xDE;
     i2c_delay();
 }
 
 void i2c_set_sda_output(void) {
-    // Use exact Ghidra values - the original firmware expects these specific configurations  
-    P4CON = 0xFE;  // Original Ghidra value includes correct P43 settings
-    i2c_delay();  
+    // Sets the SDA pin to push-pull output mode.
+    // The value 0xFE is specific to your microcontroller's port configuration register.
+    // 11111110 = Pin 45 is activated => 1: Pxy is a strong push-pull output mode
+    P4CON = 0xFE;
+    i2c_delay();
 }
 
 __bit i2c_read_sda(void) {
-    return SDA24; 
+    return SDA24;
 }
 
-// I2C protocol functions
-void i2c_start(void) {
-    EA = 0;
-    i2c_set_sda_high();
-    i2c_set_sck_high();
-    i2c_set_sda_low();
-    i2c_set_sck_low();
-}
+// --- Diagnostic functions moved to test_functions_reference.c ---
 
-void i2c_stop(void) {
-    i2c_set_sda_low();
-    i2c_set_sck_low();
-    i2c_set_sck_high();
-    i2c_set_sda_high();
-    EA = 1;
-}
+// --- Bus Management ---
 
-__bit i2c_send(u8 byte) {
-    u8 i;
-    __bit ack = 1;   // default = success
-
-    i2c_set_sck_low(); // Ensure SCL starts low
-
-    // Send 8 bits (MSB first)
-    for (i = 0; i < 8; i++) {
-        // i2c_set_sda(byte & 0x80);
-        byte & 0x80 ? i2c_set_sda_high() : i2c_set_sda_low();
-        byte <<= 1;
-        i2c_set_sck_high();
-        i2c_set_sck_low();
-    }
-
-    // Release SDA and check ACK
-    i2c_set_sda_input();
-    i2c_set_sda_high();  // keep line idle
-    i2c_set_sck_high();
-
-    if (i2c_read_sda()) {
-        // SDA stayed high → no ACK
-        ack = 0;
-    }
-
-    i2c_set_sck_low();
+void i2c_bus_reset(void) {
+    // This function attempts to recover a stuck I2C bus.
     i2c_set_sda_output();
     i2c_set_sda_high();
+    i2c_set_sck_high();
 
-    return ack; // 1 = success (ACK), 0 = fail (NACK)
-}
-
-
-
-u8 i2c_receive(__bit send_ack) {
-    u8 r = 0;
-    u8 i;
-    
-    i2c_set_sda_input();     // Set SDA as input like Ghidra (P4CON = 0xde)
-    i2c_set_sck_low();       // Start with SCL low
-    i2c_delay();
-    i2c_set_sda_high();  // Release SDA to read data
-    
-    for (i = 0; i < 8; i++) {
-        i2c_set_sck_high();   // SCL high first
-        i2c_delay();          // Delay to allow SDA to stabilize
-        
-        r <<= 1;              // Shift left for next bit
-        if (i2c_read_sda()) { // Read SDA during high clock
-            r |= 1;           // Set LSB if SDA is high
-        }
-        
-        i2c_set_sck_low();    // SCL low
-        i2c_delay();          // Delay after clock
+    // Send 9 clock pulses to force any slave holding SDA low to release it.
+    for (u8 i = 0; i < 9; i++) {
+        i2c_set_sck_low();
+        i2c_set_sck_high();
     }
-    
-    // Send ACK/NACK like Ghidra does
-    i2c_delay();
-    i2c_set_sda_output();     // Back to output mode (P4CON = 0xfe)
-    i2c_set_sda_high();  // Release SDA to idle state
-    // removed ACK/NACK logic from here to match Ghidra
-    // i2c_set_sda(!send_ack);   // Send ACK (0) or NACK (1)
-    // i2c_set_sck_high();       // SCL high for ACK/NACK
-    // i2c_delay();
-    // i2c_set_sck_low();        // SCL low
-    // i2c_delay();
-    
-    return r;
-}
-
-// High-level functions
-void i2c_write(const u8 *source, u8 length) {
-    while (length--) {
-        i2c_send(*source++);
-    }
-}
-
-void i2c_read(u8* destination, u8 length) {
-    for (u8 i = 0; i < length; i++) {
-        destination[i] = i2c_receive(i == (length - 1));  // NACK on last byte
-    }
+    // Send a proper STOP condition to fully reset the bus state.
+    i2c_stop();
 }

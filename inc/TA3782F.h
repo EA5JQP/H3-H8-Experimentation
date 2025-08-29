@@ -186,16 +186,26 @@ __data __at (0x0F) volatile unsigned char ADC1;  // ADC 10-bit result high byte
 #define exWdT1 (*((volatile unsigned char __xdata *) 0xF699))      // Extended watchdog timer 1
 #define exZrdMode (*((volatile unsigned char __xdata *) 0xF692))   // Extended Z-read mode  
 
-#define exP34Mode (*((volatile unsigned char __xdata *) 0xF034))   // Extended P34 mode (P3.4 is used for Battery Adc in H3)
-#define exP40Mode (*((volatile unsigned char __xdata *) 0xF040))   // Extended P40 mode (P4.0 is used for Battery Adc in H8)
+#define exP02Mode (*((volatile unsigned char __xdata *) 0xF002))   // Extended P06 mode (P0.2 is used for APC in H8)
+#define exP03Mode (*((volatile unsigned char __xdata *) 0xF003))   // Extended P03 mode (P0.3 is used for APC in H8)
 #define exP04Mode (*((volatile unsigned char __xdata *) 0xF004))   // Extended P04 mode (P0.4 is used for LCD SCLK in H3)
 #define exP05Mode (*((volatile unsigned char __xdata *) 0xF005))   // Extended P05 mode (P0.5 is used for LCD SDA in H3)
-#define exP02Mode (*((volatile unsigned char __xdata *) 0xF002))   // Extended P06 mode (P0.2 is used for APC in H8)
+#define exP06Mode (*((volatile unsigned char __xdata *) 0xF006))   // Extended P06 mode (P0.6 is used for LCD CS in H3)
+#define exP07Mode (*((volatile unsigned char __xdata *) 0xF007))   // Extended P07 mode (P0.7 is used for LCD RS in H3)
+#define exP10Mode (*((volatile unsigned char __xdata *) 0xF010))   // P1.0 pin mode
 #define exP11Mode (*((volatile unsigned char __xdata *) 0xF011))   // P1.1 pin mode
+#define exP12Mode (*((volatile unsigned char __xdata *) 0xF012))   // P1.2 pin mode (used for UART 1 TX in H3)
 #define exP13Mode (*((volatile unsigned char __xdata *) 0xF013))   // P1.3 pin mode
-#define exP43Mode (*((volatile unsigned char __xdata *) 0xF123))   // P1.2 pin mode (used for UART 1 RX in H3)
+#define exP14Mode (*((volatile unsigned char __xdata *) 0xF014))  // P1.4 pin mode
+#define exP15Mode (*((volatile unsigned char __xdata *) 0xF015))   // P1.5 pin mode
+#define exP16Mode (*((volatile unsigned char __xdata *) 0xF016))   // P1.6 pin mode
+#define exP17Mode (*((volatile unsigned char __xdata *) 0xF017))   // P1.7 pin mode
 #define exP20Mode (*((volatile unsigned char __xdata *) 0xF020))   // P2.0 pin mode  
 #define exP21Mode (*((volatile unsigned char __xdata *) 0xF021))   // P2.1 pin mode
+#define exP34Mode (*((volatile unsigned char __xdata *) 0xF034))   // Extended P34 mode (P3.4 is used for Battery Adc in H3)
+#define exP40Mode (*((volatile unsigned char __xdata *) 0xF040))   // Extended P40 mode (P4.0 is used for Battery Adc in H8)
+
+#define exP43Mode (*((volatile unsigned char __xdata *) 0xF123))   // P1.2 pin mode (used for UART 1 RX in H3)
 
 
 // External UART 1 (P11/P13) - Validated addresses

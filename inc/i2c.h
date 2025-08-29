@@ -4,11 +4,15 @@
 #include "TA3782F.h"
 #include "types.h"
 #include "H8.h"
+#include "uart.h"
+#include "eeprom.h"
 
-// Initialization and basic delay functions
+// Bus initialization and recovery
 void i2c_init(void);
 void i2c_bus_reset(void);
 void i2c_delay(void);
+
+// Diagnostic functions moved to test_functions_reference.c
 void i2c_set_sda_high(void);
 void i2c_set_sda_low(void);
 void i2c_set_sda(u8 value);
@@ -22,10 +26,10 @@ __bit i2c_read_sda(void);
 void i2c_start(void);
 void i2c_stop(void);
 __bit i2c_send(u8 byte);
-u8 i2c_receive(__bit send_ack);
+u8 i2c_receive(__bit send_nack);
 
 // High-level I2C functions
-void i2c_write(const u8 *source, u8 length);
+__bit i2c_write(const u8 *source, u8 length);
 void i2c_read(u8* destination, u8 length);
 
 #endif

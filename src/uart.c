@@ -129,7 +129,7 @@ void uart_bt_init(void) {
     P1CON &= 0xF8;
     P1CON |= 4;
     SCON |= 0x10;
-    PCON = PCON |= 0x80;
+    PCON |= 0x80;
     exUart1Baud_H = 200;
     exUart1Baud_L = 0xFE;
     exUart2Con &= 0xF8;
@@ -249,7 +249,7 @@ void uart_bt_send_string(const u8 *str) {
 }
 
 void process_pr_uart_commands(void) {
-    static u8 cmd_buffer[32];
+    static __xdata u8 cmd_buffer[32];
     static u8 cmd_index = 0;
     u8 received_byte;
     

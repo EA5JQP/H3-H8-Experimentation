@@ -13,16 +13,25 @@
 // 16x16 font definitions
 #define FONT_16X16_WIDTH 16
 #define FONT_16X16_HEIGHT 16
-#define FONT_16X16_CHAR_COUNT 10  // 0-9 digits
+#define FONT_16X16_CHAR_COUNT 95  // ASCII 0x20-0x7E (space to tilde)
 #define FONT_16X16_BYTES_PER_CHAR 32  // 16 rows * 2 bytes per row
 
-// Character mapping for digits 0-9
+// Character mapping for digits 0-9  
 #define GET_DIGIT_INDEX(c) ((c >= '0' && c <= '9') ? (c - '0') : 0)
+// Character mapping for all printable ASCII
+#define GET_CHAR_INDEX(c) ((c >= 0x20 && c <= 0x7E) ? (c - 0x20) : 0)
 
 // 16x16 font functions
 void render_16x16_char(u8 x, u8 y, char c);
 void render_16x16_string(u8 x, u8 y, const char *str);
 void render_16x16_number(u8 x, u8 y, u16 number);
+
+// 32x32 scaled font functions (2x scaling of 16x16)
+#define FONT_32X32_WIDTH 32
+#define FONT_32X32_HEIGHT 32
+void render_32x32_char(u8 x, u8 y, char c);
+void render_32x32_string(u8 x, u8 y, const char *str);
+void render_32x32_number(u8 x, u8 y, u16 number);
 
 
 // Utility functions

@@ -2,6 +2,7 @@
 #define AT1846S_TEST_H
 
 #include "at1846s.h"
+#include "at1846s_registers.h"
 #include "types.h"
 #include "delay.h"
 

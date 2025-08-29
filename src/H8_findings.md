@@ -189,3 +189,20 @@ From string analysis, the radio supports:
 - Multiple frequency bands
 
 This appears to be a full-featured amateur/GMRS radio with professional capabilities.
+
+
+KEYIN1
+KEYIN2
+KEYIN3
+KEYIN4
+KEYIN5
+
+P30 - P34
+
+
+KEYOUT1
+KEYOUT2
+KEYOUT3
+KEYOUT4
+
+P14 - P17
