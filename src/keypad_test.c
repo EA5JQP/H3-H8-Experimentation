@@ -13,6 +13,7 @@ void test_keypad_scan(void) {
         
         if (current_key != last_key) {
             if (current_key != 0) {
+                // Key pressed
                 send_uart_message("Key detected:");
                 
                 // Send key name
@@ -40,6 +41,15 @@ void test_keypad_scan(void) {
                     case KEY_SIDE1: send_uart_message("SIDE1"); break;
                     case KEY_SIDE2: send_uart_message("SIDE2"); break;
                     case KEY_FLSH: send_uart_message("FLSH"); break;
+                    case KEY_FLSH_PLUS_1: send_uart_message("FLSH+1"); break;
+                    case KEY_FLSH_PLUS_2: send_uart_message("FLSH+2"); break;
+                    case KEY_FLSH_PLUS_3: send_uart_message("FLSH+3"); break;
+                    case KEY_FLSH_PLUS_4: send_uart_message("FLSH+4"); break;
+                    case KEY_FLSH_PLUS_5: send_uart_message("FLSH+5"); break;
+                    case KEY_FLSH_PLUS_6: send_uart_message("FLSH+6"); break;
+                    case KEY_FLSH_PLUS_7: send_uart_message("FLSH+7"); break;
+                    case KEY_FLSH_PLUS_8: send_uart_message("FLSH+8"); break;
+                    case KEY_FLSH_PLUS_9: send_uart_message("FLSH+9"); break;
                     default: 
                         send_uart_message("Unknown key code:");
                         uart_pr_send_byte('0' + (current_key / 100));
@@ -62,7 +72,8 @@ void test_keypad_scan(void) {
                 uart_pr_send_byte('\r');
                 uart_pr_send_byte('\n');
                 
-            } else if (last_key != 0) {
+            } else if (current_key == 0 && last_key != 0) {
+                // Key released
                 send_uart_message("Key released");
             }
             

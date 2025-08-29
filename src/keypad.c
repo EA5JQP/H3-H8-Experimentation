@@ -66,30 +66,49 @@ u8 keypad_scan(void) {
                 SET_FLSH();
             }
 
-            // --- Row 1 Scan ---
-            SET_ROW1();
-            delay_short(10);
+            // --- Check for SIDE keys first (before matrix scan) ---
+            // SIDE1 detection (col2 multi-row)
+            u8 side1 = 0;
+            DETECT_MULTI_ROW_INPUT(KEYIN2, side1);
+            if (side1) {
+                local_key = KEY_SIDE1;
+            }
 
-            if (RXD232_PTT != 0x01) {
-                local_key = KEY_PTTA;
+            // SIDE2 detection (col3 multi-row)
+            if (local_key == 0) {
+                u8 side2 = 0;
+                DETECT_MULTI_ROW_INPUT(KEYIN3, side2);
+                if (side2) {
+                    local_key = KEY_SIDE2;
+                }
             }
-            else if (!KEYIN1 && !IS_FLSH()) {
-                local_key = KEY_MENU;
-            }
-            else if (!KEYIN2) {
-                current_number_key = KEY_1;
-                local_key = IS_FLSH() ? (0x30 + KEY_1) : KEY_1;
-            }
-            else if (!KEYIN3) {
-                current_number_key = KEY_4;
-                local_key = IS_FLSH() ? (0x30 + KEY_4) : KEY_4;
-            }
-            else if (!KEYIN4) {
-                current_number_key = KEY_7;
-                local_key = IS_FLSH() ? (0x30 + KEY_7) : KEY_7;
-            }
-            else if (!KEYIN5) {
-                local_key = KEY_VFO;
+
+            // --- Row 1 Scan (only if no side key detected) ---
+            if (local_key == 0) {
+                SET_ROW1();
+                delay_short(10);
+
+                if (RXD232_PTT != 0x01) {
+                    local_key = KEY_PTTA;
+                }
+                else if (!KEYIN1 && !IS_FLSH()) {
+                    local_key = KEY_MENU;
+                }
+                else if (!KEYIN2) {
+                    current_number_key = KEY_1;
+                    local_key = IS_FLSH() ? (0x30 + KEY_1) : KEY_1;
+                }
+                else if (!KEYIN3) {
+                    current_number_key = KEY_4;
+                    local_key = IS_FLSH() ? (0x30 + KEY_4) : KEY_4;
+                }
+                else if (!KEYIN4) {
+                    current_number_key = KEY_7;
+                    local_key = IS_FLSH() ? (0x30 + KEY_7) : KEY_7;
+                }
+                else if (!KEYIN5) {
+                    local_key = KEY_VFO;
+                }
             }
 
             // --- Row 2 Scan ---
@@ -187,28 +206,9 @@ u8 keypad_scan(void) {
                 last_number_key = 0;
             }
 
-            // --- Fallback checks for SIDE1 / SIDE2 / FLSH alone when still no key ---
-            if (local_key == 0) {
-                // SIDE1 detection (col2 multi-row)
-                u8 side1 = 0;
-                DETECT_MULTI_ROW_INPUT(KEYIN2, side1);
-                if (side1) {
-                    local_key = KEY_SIDE1;
-                }
-
-                // SIDE2 detection (col3 multi-row)
-                if (local_key == 0) {
-                    u8 side2 = 0;
-                    DETECT_MULTI_ROW_INPUT(KEYIN3, side2);
-                    if (side2) {
-                        local_key = KEY_SIDE2;
-                    }
-                }
-
-                // FLSH alone
-                if (local_key == 0 && IS_FLSH()) {
-                    local_key = KEY_FLSH;
-                }
+            // --- Fallback check for FLSH alone when still no key ---
+            if (local_key == 0 && IS_FLSH()) {
+                local_key = KEY_FLSH;
             }
 
             // Commit local_key to the volatile storage
