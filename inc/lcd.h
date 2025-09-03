@@ -20,5 +20,6 @@ void lcd_send_data(u8 data);
 void lcd_send_cmd(u8 command);
 void lcd_set_window(u8 x0, u8 y0, u8 x1, u8 y1);
 void spi_write_pixel_data(u8 byte_high, u8 byte_low);
+void clear_area(u8 x1, u8 y1, u8 x2, u8 y2);
 
 #endif

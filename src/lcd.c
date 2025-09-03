@@ -112,5 +112,15 @@ void lcd_set_window(u8 x0, u8 y0, u8 x1, u8 y1)
     lcd_send_cmd(0x2C); // Memory write command
 }
 
+void clear_area(u8 x1, u8 y1, u8 x2, u8 y2) {
+    lcd_set_window(x1, y1, x2, y2);
+    
+    u16 pixel_count = (u16)(x2 - x1 + 1) * (y2 - y1 + 1);
+    for (u16 i = 0; i < pixel_count; i++) {
+        lcd_send_data(0x00);  // Black background
+        lcd_send_data(0x00);
+    }
+}
+
 
 

@@ -44,7 +44,9 @@ void main(void) {
     delay_ms(1, 0x2c);
     uart_pr_init();
     uart_bt_init();
+    send_uart_message("UART initialized - starting LCD init");
     lcd_init();
+    clear_area(0, 0, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - 1);
     at1846s_init();
 
     delay_ms(6, 232);
@@ -99,13 +101,20 @@ void main(void) {
     render_16x16_string(8, 80, "Freq:");
     render_16x16_number(80, 80, freq);
 
+    u8 last_key = 0;  // Track last key to prevent repeats
+
     while (1) {
         watchdog_reset();
         
         // Check for key presses and handle menu system
         u8 current_key = keypad_scan();
-        if (current_key != 0) {
-            if (menu_mode) {
+        if (current_key != last_key) {
+            if (current_key != 0) {
+                send_uart_message("Key detected:");
+                uart_pr_send_byte('0' + (current_key & 0x0F));
+                uart_pr_send_byte('\r');
+                uart_pr_send_byte('\n');
+                if (menu_mode == MENU_MODE_MENU) {
                 // In menu mode - process menu keys
                 menu_process_key(current_key);
             } else {
@@ -136,16 +145,17 @@ void main(void) {
                     }
                 }
             }
+            last_key = current_key;
         }
         
         // Update display based on mode
-        if (menu_mode && menu_display_dirty) {
+        if (menu_mode == MENU_MODE_MENU && menu_display_dirty) {
             menu_update_display();
-        } else if (!menu_mode) {
+        } else if (menu_mode == MENU_MODE_NORMAL) {
             // Simple background pattern in normal mode
             simple_background_pattern();
         }
         
-        delay_ms(50, 0);  // Responsive key handling
+        delay_ms(0, 10);  // 10ms key handling for stable debounce
     }
 }

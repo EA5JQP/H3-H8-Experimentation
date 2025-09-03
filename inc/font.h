@@ -35,7 +35,6 @@ void render_32x32_number(u8 x, u8 y, u16 number);
 
 
 // Utility functions
-void clear_area(u8 x1, u8 y1, u8 x2, u8 y2);
 
 // Demo functions
 void dual_font_demo(void);

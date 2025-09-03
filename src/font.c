@@ -239,7 +239,7 @@ void render_16x16_string(u8 x, u8 y, const char *str) {
     while (*str && current_x < DISPLAY_WIDTH - FONT_16X16_WIDTH) {
         if (*str >= 0x20 && *str <= 0x7E) {  // All printable ASCII characters
             render_16x16_char(current_x, y, *str);
-            current_x += FONT_16X16_WIDTH + 2; // Add 2 pixel spacing
+            current_x += FONT_16X16_WIDTH; // No extra spacing between characters
         }
         str++;
     }
@@ -272,15 +272,6 @@ void render_16x16_number(u8 x, u8 y, u16 number) {
 
 
 // Clear a rectangular area of the display
-void clear_area(u8 x1, u8 y1, u8 x2, u8 y2) {
-    lcd_set_window(x1, y1, x2, y2);
-    
-    u16 pixel_count = (u16)(x2 - x1 + 1) * (y2 - y1 + 1);
-    for (u16 i = 0; i < pixel_count; i++) {
-        lcd_send_data(0x00);  // Black background
-        lcd_send_data(0x00);
-    }
-}
 
 // Demonstration of both fonts
 void dual_font_demo(void) {
@@ -364,7 +355,7 @@ void render_32x32_string(u8 x, u8 y, const char *str) {
     while (*str && current_x < DISPLAY_WIDTH - FONT_32X32_WIDTH) {
         if (*str >= 0x20 && *str <= 0x7E) {  // All printable ASCII characters
             render_32x32_char(current_x, y, *str);
-            current_x += FONT_32X32_WIDTH + 4; // Add 4 pixel spacing for larger font
+            current_x += FONT_32X32_WIDTH; // No extra spacing between characters
         }
         str++;
     }

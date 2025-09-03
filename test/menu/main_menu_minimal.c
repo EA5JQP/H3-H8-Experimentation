@@ -65,9 +65,16 @@ u16 at1846s_get_battery_voltage(void) {
 void simple_background_pattern(void) {
     static u8 counter = 0;
     if ((counter++ & 0x0F) == 0) {
-        // Very simple pattern to show activity
-        lcd_set_window(counter & 0x7F, 112, (counter & 0x7F) + 8, 120);
-        spi_write_pixel_data(counter, counter ^ 0xFF);
+        u8 row, col;
+        // Fill whole screen with black pixels
+        lcd_set_window(0, 0, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - 1);
+        
+        for (row = 0; row < 128; row++) {
+            for (col = 0; col < 160; col++) {
+                lcd_send_data(0x00);
+                lcd_send_data(0x00);
+            }
+        }
     }
 }
 
@@ -84,7 +91,7 @@ void main(void) {
     uart_pr_init();
     uart_bt_init();
     lcd_init();
-    at1846s_init();
+    clear_area(0, 0, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - 1);
 
     delay_ms(6, 232);
 
@@ -102,30 +109,41 @@ void main(void) {
     send_uart_message("  * - Edit, # - Save");
     
     // Initial display
-    clear_area(0, 0, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - 1);
     render_16x16_string(16, 32, "H8 MENU");
     render_16x16_string(16, 64, "TEST");
 
     while (1) {
         watchdog_reset();
         
-        // Handle keys
+        // Handle keys with 500ms debouncing
         u8 current_key = keypad_scan();
+        static u8 last_processed_key = 0;
+        static u16 key_debounce_timer = 0;
+        
         if (current_key != 0) {
-            if (menu_mode) {
-                menu_process_key(current_key);
-            } else {
-                if (current_key == KEY_MENU) {
-                    send_uart_message("Entering menu");
-                    menu_enter();
+            if (current_key != last_processed_key || key_debounce_timer >= 25) {
+                last_processed_key = current_key;
+                key_debounce_timer = 0;
+                
+                if (menu_mode) {
+                    menu_process_key(current_key);
                 } else {
-                    send_uart_message("Key:");
-                    uart_pr_send_byte('0' + (current_key & 0x0F));
-                    uart_pr_send_byte('\r');
-                    uart_pr_send_byte('\n');
+                    if (current_key == KEY_MENU) {
+                        send_uart_message("Entering menu");
+                        menu_enter();
+                    } else {
+                        send_uart_message("Key:");
+                        uart_pr_send_byte('0' + (current_key & 0x0F));
+                        uart_pr_send_byte('\r');
+                        uart_pr_send_byte('\n');
+                    }
                 }
             }
+        } else {
+            last_processed_key = 0;
         }
+        
+        key_debounce_timer++;
         
         // Update display
         if (menu_mode && menu_display_dirty) {
@@ -134,6 +152,6 @@ void main(void) {
             simple_background_pattern();
         }
         
-        delay_ms(50, 0);
+        delay_ms(0, 10);
     }
 }
