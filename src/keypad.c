@@ -35,29 +35,46 @@ __xdata volatile u8 last_number_key;     // tracking last number key with FLSH
 // Read keyin by index (1..5) helper if needed; here we use direct symbols
 
 u8 keypad_scan(void) {
-    // Work on local copy to reduce repeated __xdata accesses
     u8 local_key = 0;
     u8 current_number_key = 0;
     u8 flsh = 0;
 
-    // Clear lower nibble of P1 (as original)
-    P1 &= 0xF;
-    u8 no_keys_pressed = (P3 & 0x1F) == 0x1F;
-
-    if ((RXD232_PTT == 1) && no_keys_pressed) {
-        if ((key_code == 0x00) || (debounce_counter < 5)) {
-            debounce_counter = 0;
-            key_code = 0;
-            last_number_key = 0;
-            CLR_FLSH();
+    // Check PTT state first, as it's a critical, non-matrix key
+    if (RXD232_PTT != 0x01) {
+        // PTT is pressed
+        if (key_code != KEY_PTTA) { // To prevent re-triggering
+            local_key = KEY_PTTA;
+        } else {
+            // Already holding PTT, so don't re-assign
+            local_key = KEY_PTTA;
         }
-    } else {
-        debounce_counter++;
-        if (debounce_counter > 5) {
+        
+        // PTT is active, so reset all other key states
+        debounce_counter = 0;
+        last_number_key = 0;
+        CLR_FLSH();
+        
+        // Commit the PTT key code
+        key_code = local_key;
+        
+    } else { // PTT is not pressed
+        // Scan the rest of the keypad matrix
+        P1 &= 0xF;
+        u8 no_keys_pressed = (P3 & 0x1F) == 0x1F;
+
+        if (no_keys_pressed) {
+            debounce_counter++;
+            if (debounce_counter > 5) {
+                debounce_counter = 0;
+                key_code = 0;
+                last_number_key = 0;
+                CLR_FLSH();
+            }
+        } else {
             debounce_counter = 0;
             prev_key_code = key_code;
-            key_code = 0;        // clear early
-            CLR_FLSH();          // reset flag
+            key_code = 0;
+            CLR_FLSH();
             current_number_key = 0;
 
             // Detect FLSH (multi-row on col1)
@@ -88,10 +105,7 @@ u8 keypad_scan(void) {
                 SET_ROW1();
                 delay_short(10);
 
-                if (RXD232_PTT != 0x01) {
-                    local_key = KEY_PTTA;
-                }
-                else if (!KEYIN1 && !IS_FLSH()) {
+                if (!KEYIN1 && !IS_FLSH()) {
                     local_key = KEY_MENU;
                 }
                 else if (!KEYIN2) {
@@ -111,100 +125,100 @@ u8 keypad_scan(void) {
                 }
             }
 
-            // --- Row 2 Scan ---
-            if (local_key == 0) {
-                SET_ROW2();
-                delay_short(10);
+        // --- Row 2 Scan ---
+        if (local_key == 0) {
+            SET_ROW2();
+            delay_short(10);
 
-                if (!KEYIN1 && !IS_FLSH()) {
-                    local_key = KEY_UP;
-                }
-                else if (!KEYIN2) {
-                    current_number_key = KEY_2;
-                    local_key = IS_FLSH() ? (0x30 + KEY_2) : KEY_2;
-                }
-                else if (!KEYIN3) {
-                    current_number_key = KEY_5;
-                    local_key = IS_FLSH() ? (0x30 + KEY_5) : KEY_5;
-                }
-                else if (!KEYIN4) {
-                    current_number_key = KEY_8;
-                    local_key = IS_FLSH() ? (0x30 + KEY_8) : KEY_8;
-                }
-                else if (!KEYIN5) {
-                    local_key = KEY_BL;
-                }
+            if (!KEYIN1 && !IS_FLSH()) {
+                local_key = KEY_UP;
             }
+            else if (!KEYIN2) {
+                current_number_key = KEY_2;
+                local_key = IS_FLSH() ? (0x30 + KEY_2) : KEY_2;
+            }
+            else if (!KEYIN3) {
+                current_number_key = KEY_5;
+                local_key = IS_FLSH() ? (0x30 + KEY_5) : KEY_5;
+            }
+            else if (!KEYIN4) {
+                current_number_key = KEY_8;
+                local_key = IS_FLSH() ? (0x30 + KEY_8) : KEY_8;
+            }
+            else if (!KEYIN5) {
+                local_key = KEY_BL;
+            }
+        }
 
-            // --- Row 3 Scan ---
-            if (local_key == 0) {
-                SET_ROW3();
-                delay_short(10);
+        // --- Row 3 Scan ---
+        if (local_key == 0) {
+            SET_ROW3();
+            delay_short(10);
 
-                if (!KEYIN1 && !IS_FLSH()) {
-                    local_key = KEY_DOWN;
-                }
-                else if (!KEYIN2) {
-                    current_number_key = KEY_3;
-                    local_key = IS_FLSH() ? (0x30 + KEY_3) : KEY_3;
-                }
-                else if (!KEYIN3) {
-                    current_number_key = KEY_6;
-                    local_key = IS_FLSH() ? (0x30 + KEY_6) : KEY_6;
-                }
-                else if (!KEYIN4) {
-                    current_number_key = KEY_9;
-                    local_key = IS_FLSH() ? (0x30 + KEY_9) : KEY_9;
-                }
-                else if (!KEYIN5) {
-                    local_key = KEY_AB;
-                }
+            if (!KEYIN1 && !IS_FLSH()) {
+                local_key = KEY_DOWN;
             }
+            else if (!KEYIN2) {
+                current_number_key = KEY_3;
+                local_key = IS_FLSH() ? (0x30 + KEY_3) : KEY_3;
+            }
+            else if (!KEYIN3) {
+                current_number_key = KEY_6;
+                local_key = IS_FLSH() ? (0x30 + KEY_6) : KEY_6;
+            }
+            else if (!KEYIN4) {
+                current_number_key = KEY_9;
+                local_key = IS_FLSH() ? (0x30 + KEY_9) : KEY_9;
+            }
+            else if (!KEYIN5) {
+                local_key = KEY_AB;
+            }
+        }
 
-            // --- Row 4 Scan ---
-            if (local_key == 0) {
-                SET_ROW4();
-                delay_short(10);
+        // --- Row 4 Scan ---
+        if (local_key == 0) {
+            SET_ROW4();
+            delay_short(10);
 
-                if (!KEYIN1 && !IS_FLSH()) {
-                    local_key = KEY_EXIT;
-                }
-                else if (!KEYIN2) {
-                    current_number_key = KEY_STAR;
-                    local_key = IS_FLSH() ? (0x30 + KEY_STAR) : KEY_STAR;
-                }
-                else if (!KEYIN3) {
-                    current_number_key = KEY_0;
-                    local_key = IS_FLSH() ? (0x30 + KEY_0) : KEY_0;
-                }
-                else if (!KEYIN4) {
-                    current_number_key = KEY_HASH;
-                    local_key = IS_FLSH() ? (0x30 + KEY_HASH) : KEY_HASH;
-                }
+            if (!KEYIN1 && !IS_FLSH()) {
+                local_key = KEY_EXIT;
             }
+            else if (!KEYIN2) {
+                current_number_key = KEY_STAR;
+                local_key = IS_FLSH() ? (0x30 + KEY_STAR) : KEY_STAR;
+            }
+            else if (!KEYIN3) {
+                current_number_key = KEY_0;
+                local_key = IS_FLSH() ? (0x30 + KEY_0) : KEY_0;
+            }
+            else if (!KEYIN4) {
+                current_number_key = KEY_HASH;
+                local_key = IS_FLSH() ? (0x30 + KEY_HASH) : KEY_HASH;
+            }
+        }
 
-            // --- Handle FLSH / number combination state transitions ---
-            if (IS_FLSH() && current_number_key != 0) {
-                // FLSH + number pressed
-                if (current_number_key != last_number_key) {
-                    last_number_key = current_number_key;
-                    // key already in local_key
-                }
+        // --- Handle FLSH / number combination state transitions ---
+        if (IS_FLSH() && current_number_key != 0) {
+            // FLSH + number pressed
+            if (current_number_key != last_number_key) {
+                last_number_key = current_number_key;
+                // key already in local_key
             }
-            else if (IS_FLSH() && current_number_key == 0 && last_number_key != 0) {
-                // number released, FLSH still held
-                local_key = KEY_FLSH;
-                last_number_key = 0;
+        }
+        else if (IS_FLSH() && current_number_key == 0 && last_number_key != 0) {
+            // number released, FLSH still held
+            local_key = KEY_FLSH;
+            last_number_key = 0;
+        }
+        else if (!IS_FLSH() && last_number_key != 0) {
+            // FLSH released
+            if (current_number_key != 0) {
+                local_key = current_number_key;
+            } else {
+                local_key = 0;
             }
-            else if (!IS_FLSH() && last_number_key != 0) {
-                // FLSH released
-                if (current_number_key != 0) {
-                    local_key = current_number_key;
-                } else {
-                    local_key = 0;
-                }
-                last_number_key = 0;
-            }
+            last_number_key = 0;
+        }
 
             // --- Fallback check for FLSH alone when still no key ---
             if (local_key == 0 && IS_FLSH()) {
