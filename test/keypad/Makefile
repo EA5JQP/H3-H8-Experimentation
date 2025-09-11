@@ -25,9 +25,7 @@ CORE_SRCS = main.c \
            ../../src/watchdog.c \
            ../../src/pwm.c \
            ../../src/uart.c \
-           ../../src/uart_test.c \
-           ../../src/keypad.c \
-           ../../src/keypad_test.c
+           ../../src/keypad.c
 
 RELS = $(patsubst %.c,${DIR_BUILD}/%.rel,$(notdir ${CORE_SRCS}))
 

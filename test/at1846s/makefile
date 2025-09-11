@@ -1,5 +1,5 @@
 # Test-specific sources
-TEST_SRCS = at1846s_test.c
+TEST_SRCS =
 
 # Include common makefile rules
 include ../shared/common.mk

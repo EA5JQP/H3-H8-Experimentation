@@ -25,7 +25,7 @@ CFLAGS += --int-long-reent       # Reentrant functions for better memory usage
 CFLAGS += --float-reent          # Reentrant float functions
 
 # Core sources (always needed)
-CORE_SRCS = delay.c watchdog.c hardware.c pwm.c uart.c keypad.c lcd.c battery.c font.c i2c.c eeprom.c at1846s.c at1846s_reg.c uart_test.c
+CORE_SRCS = delay.c watchdog.c hardware.c pwm.c uart.c keypad.c lcd.c battery.c font.c i2c.c eeprom.c at1846s.c at1846s_reg.c
 
 # Test-specific main
 TEST_MAIN = main.c

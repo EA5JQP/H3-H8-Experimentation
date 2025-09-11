@@ -19,13 +19,12 @@ CFLAGS += --int-long-reent
 CFLAGS += --float-reent
 
 # Core sources (minimal set for menu testing)
-CORE_SRCS = main_menu_minimal.c \
+CORE_SRCS = main.c \
            ../../src/hardware.c \
            ../../src/delay.c \
            ../../src/watchdog.c \
            ../../src/pwm.c \
            ../../src/uart.c \
-           ../../src/uart_test.c \
            ../../src/keypad.c \
            ../../src/lcd.c \
            ../../src/font.c \
@@ -59,7 +58,7 @@ $(DIR_BIN)/$(PROJ_NAME).ihx: $(RELS) | $(DIR_BIN)
 	$(CC) $^ -o $@
 
 # Build rules for each source file
-$(DIR_BUILD)/main_menu_minimal.rel: main_menu_minimal.c | $(DIR_BUILD)
+$(DIR_BUILD)/main.rel: main.c | $(DIR_BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(DIR_BUILD)/%.rel: ../../src/%.c | $(DIR_BUILD)
@@ -73,8 +72,8 @@ $(DIR_BIN):
 	mkdir -p $(DIR_BIN)
 
 clean:
-	rm -rf $(DIR_BUILD)
-	rm -rf $(DIR_BIN)
+	rm -rf $(DIR_BUILD)/*
+	rm -rf $(DIR_BIN)/*
 
 print:
 	@echo "Menu test firmware:"
