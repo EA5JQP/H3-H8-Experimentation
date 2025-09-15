@@ -26,6 +26,13 @@ void render_16x16_char(u8 x, u8 y, char c);
 void render_16x16_string(u8 x, u8 y, const char *str);
 void render_16x16_number(u8 x, u8 y, u16 number);
 
+// 16x8 font definitions and functions  
+#define FONT_16X8_WIDTH 16
+#define FONT_16X8_HEIGHT 8
+void render_16x8_char(u8 x, u8 y, char c);
+void render_16x8_string(u8 x, u8 y, const char *str);
+void render_16x8_number(u8 x, u8 y, u16 number);
+
 // 32x32 scaled font functions (2x scaling of 16x16)
 #define FONT_32X32_WIDTH 32
 #define FONT_32X32_HEIGHT 32
