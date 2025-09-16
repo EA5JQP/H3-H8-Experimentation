@@ -18,8 +18,8 @@ CFLAGS += --stack-auto           # Use automatic stack allocation
 CFLAGS += --int-long-reent       # Reentrant functions for better memory usage
 CFLAGS += --float-reent          # Reentrant float functions
 
-# Sources and objects
-SRCS = $(wildcard ${DIR_SRC}/*.c)
+# Sources and objects (exclude main_menu_test.c but include other test files needed by main.c)
+SRCS = $(filter-out ${DIR_SRC}/main_menu_test.c, $(wildcard ${DIR_SRC}/*.c))
 RELS = $(patsubst %.c,${DIR_BUILD}/%.rel,$(notdir ${SRCS}))
 
 # Targets
@@ -109,9 +109,10 @@ test-filters:
 	@$(MAKE) -C test/filters all
 
 test-font:
-	@echo "Building font test firmware..."
+	@echo "Building 16x8 font test firmware..."
 	@mkdir -p test/font/build
 	@$(MAKE) -C test/font all
+
 
 test-menu:
 	@echo "Building menu test firmware..."

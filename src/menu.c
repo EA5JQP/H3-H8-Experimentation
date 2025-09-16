@@ -13,6 +13,8 @@ __xdata volatile u8 menu_cursor = 0;                   // Current menu item curs
 __xdata volatile u8 menu_edit_state = MENU_EDIT_NONE;  // Current edit state (none/value editing)
 __xdata volatile u8 menu_display_dirty = 0;           // Flag indicating display needs refresh
 __xdata volatile u16 menu_edit_value = 0;              // Current value being edited
+__xdata volatile u8 menu_last_cursor = 0xFF;           // Last cursor position for partial updates
+__xdata volatile u8 menu_current_start_item = 0;       // Current scroll window start position
 
 /**
  * Menu item definitions (stored in ROM to save RAM)
@@ -54,6 +56,8 @@ void menu_init(void) {
     menu_edit_state = MENU_EDIT_NONE;
     menu_display_dirty = 0;
     menu_edit_value = 0;
+    menu_last_cursor = 0xFF;  // Initialize to invalid value
+    menu_current_start_item = 0;  // Initialize scroll window
 }
 
 /**
@@ -96,9 +100,14 @@ void menu_process_key(u8 key) {
     switch (key) {
         case KEY_MENU:
             if (menu_edit_state == MENU_EDIT_NONE) {
-                menu_exit();
+                // Enter edit mode for numeric and choice items
+                if (current_item->type == MENU_TYPE_NUMERIC || current_item->type == MENU_TYPE_CHOICE) {
+                    menu_start_edit();
+                } else {
+                    menu_exit(); // Exit menu if not editable (info/action items)
+                }
             } else {
-                menu_end_edit(0); // Cancel edit without saving
+                menu_end_edit(1); // Save changes with MENU key
             }
             break;
 
@@ -136,32 +145,18 @@ void menu_process_key(u8 key) {
         case KEY_8:
         case KEY_9:
         case KEY_0:
-            if (menu_edit_state == MENU_EDIT_NONE) {
-                // Start editing for numeric menu items
-                if (current_item->type == MENU_TYPE_NUMERIC) {
-                    menu_start_edit();
-                }
-            }
             if (menu_edit_state == MENU_EDIT_VALUE) {
                 menu_edit_digit_input(key);
             }
+            // Ignore digits in navigation mode - use MENU to enter edit mode
             break;
 
         case KEY_STAR:
-            if (menu_edit_state == MENU_EDIT_NONE) {
-                // Enter edit mode for numeric items
-                if (current_item->type == MENU_TYPE_NUMERIC) {
-                    menu_start_edit();
-                }
-            } else {
-                menu_end_edit(1); // Save changes
-            }
+            // STAR key is now unused - MENU handles edit entry and save
             break;
 
         case KEY_HASH:
-            if (menu_edit_state == MENU_EDIT_VALUE) {
-                menu_end_edit(1); // Save changes
-            }
+            // HASH key is now unused - MENU handles save
             break;
 
         default:
@@ -210,7 +205,7 @@ void menu_navigate_down(void) {
  */
 void menu_start_edit(void) {
     const menu_item_t* item = menu_get_current_item();
-    if (item->type == MENU_TYPE_NUMERIC) {
+    if (item->type == MENU_TYPE_NUMERIC || item->type == MENU_TYPE_CHOICE) {
         menu_edit_value = menu_get_current_value();
         menu_edit_state = MENU_EDIT_VALUE;
         menu_display_dirty = 1;
@@ -567,17 +562,248 @@ const menu_item_t* menu_get_current_item(void) {
  */
 void menu_update_display(void) {
     if (menu_display_dirty) {
-        menu_clear_screen();  // Clear screen before rendering new content
-        menu_render_title();
-        menu_render_item_name();
-        menu_render_value();
-        menu_render_navigation();
+        u8 visible_items = 6;
+        u8 new_start_item = menu_current_start_item;
+        
+        // Smart scrolling logic with hysteresis
+        // Only change scroll window when absolutely necessary
+        
+        // Check if cursor is outside current window
+        if (menu_cursor < menu_current_start_item) {
+            // Cursor moved above current window - need to scroll up
+            new_start_item = menu_cursor;
+        } else if (menu_cursor >= menu_current_start_item + visible_items) {
+            // Cursor moved below current window - need to scroll down
+            new_start_item = menu_cursor - visible_items + 1;
+        }
+        // If cursor is within current window, keep the same window
+        
+        // Check if we need full redraw or partial update
+        if (menu_last_cursor == 0xFF || new_start_item != menu_current_start_item) {
+            // First time rendering or scroll window changed - full redraw
+            menu_current_start_item = new_start_item;
+            menu_clear_screen();
+            menu_render_new_style();
+            menu_last_cursor = menu_cursor;
+        } else if (menu_last_cursor != menu_cursor) {
+            // Cursor moved within same window - partial update
+            menu_render_partial_update(menu_last_cursor, menu_cursor);
+            menu_last_cursor = menu_cursor;
+        }
+        
         menu_display_dirty = 0;
     }
 }
 
 /**
- * Render menu title at top of display
+ * Render new menu system with numbered list and inverted selection
+ * Layout: Centered "MENU", horizontal line, numbered list items with values
+ */
+void menu_render_new_style(void) {
+    u8 y_pos = 20;  // Increased spacing from line to first item
+    u8 visible_items = 6;  // Reduce items to save memory
+    u8 start_item = menu_current_start_item;  // Use current scroll window
+    
+    // Add watchdog reset
+    watchdog_reset();
+    
+    // Centered "MENU" title - better centering calculation
+    // MENU = 4 chars, each char = 12 pixels spacing, total = 4*12 = 48 pixels
+    // Screen width = 160, so center = (160-48)/2 = 56
+    render_16x8_string(56, 5, "MENU");
+    
+    // Horizontal line below title (moved further from title)
+    draw_horizontal_line(10, 150, 16);
+    
+    watchdog_reset(); // Reset before heavy rendering
+    
+    // Render visible menu items
+    for (u8 i = 0; i < visible_items && (start_item + i) < MENU_COUNT; i++) {
+        u8 item_index = start_item + i;
+        const menu_item_t* item = &menu_items[item_index];
+        u8 current_y = y_pos + (i * 14);  // 14 pixel spacing between items
+        
+        // Reset watchdog every few items
+        if (i % 3 == 0) {
+            watchdog_reset();
+        }
+        
+        // Render decimal number (1-18)
+        u8 display_number = item_index + 1;  // Convert to 1-based decimal
+        if (display_number < 10) {
+            // Single digit
+            if (item_index == menu_cursor) {
+                render_16x8_char_inverted(5, current_y, '0' + display_number);
+            } else {
+                render_16x8_char(5, current_y, '0' + display_number);
+            }
+        } else {
+            // Two digits (10-18)
+            u8 tens = display_number / 10;
+            u8 ones = display_number % 10;
+            if (item_index == menu_cursor) {
+                render_16x8_char_inverted(5, current_y, '0' + tens);
+                render_16x8_char_inverted(17, current_y, '0' + ones);
+            } else {
+                render_16x8_char(5, current_y, '0' + tens);
+                render_16x8_char(17, current_y, '0' + ones);
+            }
+        }
+        
+        // Create uppercase name string (closer spacing to number)
+        static char name_buffer[12];  // Static to save stack space
+        u8 j = 0;
+        while (item->name[j] && j < 11) {  // Limit name length
+            char c = item->name[j];
+            if (c >= 'a' && c <= 'z') {
+                c = c - 'a' + 'A';  // Convert to uppercase
+            }
+            name_buffer[j] = c;
+            j++;
+        }
+        name_buffer[j] = '\0';
+        
+        // Render name with appropriate spacing for single/double digit numbers
+        u8 name_x_pos = (display_number < 10) ? 18 : 30;  // Closer for single digits
+        
+        if (item_index == menu_cursor) {
+            // Selected item - inverted text for name
+            render_16x8_string_inverted(name_x_pos, current_y, name_buffer);
+        } else {
+            // Normal item
+            render_16x8_string(name_x_pos, current_y, name_buffer);
+        }
+    }
+    
+    watchdog_reset(); // Final reset
+}
+
+/**
+ * Render single menu item at specified position
+ */
+void menu_render_single_item(u8 item_index, u8 is_selected) {
+    const menu_item_t* item = &menu_items[item_index];
+    u8 visible_items = 6;
+    
+    // Use the global scroll window position instead of calculating independently
+    // Check if this item is currently visible in the current scroll window
+    if (item_index < menu_current_start_item || item_index >= menu_current_start_item + visible_items) {
+        return; // Item not visible, don't render
+    }
+    
+    u8 screen_position = item_index - menu_current_start_item;
+    u8 current_y = 20 + (screen_position * 14);
+    
+    // Clear the line first (simple black fill)
+    lcd_set_window(5, current_y, 150, current_y + 7);
+    for (u8 x = 0; x < 146; x++) {
+        lcd_send_data(0x00); // black hi
+        lcd_send_data(0x00); // black lo
+    }
+    
+    // Render decimal number (1-18)
+    u8 display_number = item_index + 1;  // Convert to 1-based decimal
+    if (display_number < 10) {
+        // Single digit
+        if (is_selected) {
+            render_16x8_char_inverted(5, current_y, '0' + display_number);
+        } else {
+            render_16x8_char(5, current_y, '0' + display_number);
+        }
+    } else {
+        // Two digits (10-18)
+        u8 tens = display_number / 10;
+        u8 ones = display_number % 10;
+        if (is_selected) {
+            render_16x8_char_inverted(5, current_y, '0' + tens);
+            render_16x8_char_inverted(17, current_y, '0' + ones);
+        } else {
+            render_16x8_char(5, current_y, '0' + tens);
+            render_16x8_char(17, current_y, '0' + ones);
+        }
+    }
+    
+    // Create uppercase name
+    static char name_buffer[12];
+    u8 j = 0;
+    while (item->name[j] && j < 11) {
+        char c = item->name[j];
+        if (c >= 'a' && c <= 'z') {
+            c = c - 'a' + 'A';
+        }
+        name_buffer[j] = c;
+        j++;
+    }
+    name_buffer[j] = '\0';
+    
+    // Render name with appropriate spacing for single/double digit numbers
+    u8 name_x_pos = (display_number < 10) ? 18 : 30;  // Closer for single digits
+    
+    if (is_selected) {
+        render_16x8_string_inverted(name_x_pos, current_y, name_buffer);
+    } else {
+        render_16x8_string(name_x_pos, current_y, name_buffer);
+    }
+}
+
+/**
+ * Partial screen update - only redraw changed items
+ */
+void menu_render_partial_update(u8 old_cursor, u8 new_cursor) {
+    watchdog_reset();
+    
+    // Redraw old cursor position as normal
+    menu_render_single_item(old_cursor, 0);
+    
+    // Redraw new cursor position as selected
+    menu_render_single_item(new_cursor, 1);
+    
+    watchdog_reset();
+}
+
+/**
+ * Format value as string for display
+ */
+void menu_format_value_string(const menu_item_t* item, u16 value, char* buffer) {
+    // Simplified formatting to reduce memory usage
+    if (item->type == MENU_TYPE_CHOICE) {
+        if (value == 0) {
+            buffer[0] = 'O'; buffer[1] = 'F'; buffer[2] = 'F'; buffer[3] = '\0';
+        } else {
+            buffer[0] = 'O'; buffer[1] = 'N'; buffer[2] = '\0';
+        }
+    } else {
+        // Simple number formatting (max 999)
+        if (value == 0) {
+            buffer[0] = '0'; buffer[1] = '\0';
+        } else if (value < 10) {
+            buffer[0] = '0' + value; buffer[1] = '\0';
+        } else if (value < 100) {
+            buffer[0] = '0' + (value / 10);
+            buffer[1] = '0' + (value % 10);
+            buffer[2] = '\0';
+        } else {
+            buffer[0] = '0' + (value / 100);
+            buffer[1] = '0' + ((value / 10) % 10);
+            buffer[2] = '0' + (value % 10);
+            buffer[3] = '\0';
+        }
+    }
+}
+
+/**
+ * Get current value for specific menu item
+ */
+u16 menu_get_current_value_for_item(u8 item_index) {
+    const menu_value_ops_t* ops = &menu_value_ops[item_index];
+    if (ops->get_func) {
+        return ops->get_func();
+    }
+    return 0;
+}
+
+/**
+ * Render menu title at top of display (legacy function)
  * Shows "MENU" text to indicate menu mode is active
  */
 void menu_render_title(void) {
@@ -682,9 +908,9 @@ void menu_render_value(void) {
  */
 void menu_render_navigation(void) {
     if (menu_edit_state == MENU_EDIT_NONE) {
-        render_16x16_string(MENU_TEXT_X, MENU_NAV_Y, "UP/DN * EXIT");
+        render_16x16_string(MENU_TEXT_X, MENU_NAV_Y, "MENU=EDIT EXIT");
     } else {
-        render_16x16_string(MENU_TEXT_X, MENU_NAV_Y, "UP/DN # EXIT");
+        render_16x16_string(MENU_TEXT_X, MENU_NAV_Y, "UP/DN MENU EXIT");
     }
 }
 
