@@ -33,6 +33,13 @@ void render_16x8_char(u8 x, u8 y, char c);
 void render_16x8_string(u8 x, u8 y, const char *str);
 void render_16x8_number(u8 x, u8 y, u16 number);
 
+// 16x8 inverted text functions (for menu highlighting)
+void render_16x8_char_inverted(u8 x, u8 y, char c);
+void render_16x8_string_inverted(u8 x, u8 y, const char *str);
+
+// Drawing utilities
+void draw_horizontal_line(u8 x1, u8 x2, u8 y);
+
 // 32x32 scaled font functions (2x scaling of 16x16)
 #define FONT_32X32_WIDTH 32
 #define FONT_32X32_HEIGHT 32
