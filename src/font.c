@@ -555,3 +555,68 @@ void render_16x8_number(u8 x, u8 y, u16 number) {
         }
     }
 }
+
+//=============================================================================
+// 16x8 INVERTED TEXT FUNCTIONS (for menu highlighting)
+//=============================================================================
+
+void render_16x8_char_inverted(u8 x, u8 y, char c) {
+    if (c < 0x20 || c > 0x7E) return;  // ASCII printable characters only
+    u8 idx = c - 0x20;  // Index starts from space character
+
+    // IMPORTANT: explicit code-space pointer
+    const __code u8 *glyph = &font_16x8_data[idx][0];
+
+    lcd_set_window(x, y, x + 15, y + 7);  // 16x8 window
+
+    for (u8 row = 0; row < 8; row++) {
+        // Two bytes per row: left 8, right 8
+        u8 b0 = glyph[row * 2 + 0];
+        u8 b1 = glyph[row * 2 + 1];
+        u16 row_data = ((u16)b0 << 8) | b1; // MSB = leftmost pixel
+
+        for (u8 col = 0; col < 16; col++) {
+            if (row_data & (0x8000 >> col)) {
+                // Inverted: black on white background
+                lcd_send_data(0x00); // black hi
+                lcd_send_data(0x00); // black lo
+            } else {
+                // Inverted: white background
+                lcd_send_data(0xFF); // white hi
+                lcd_send_data(0xFF); // white lo
+            }
+        }
+    }
+}
+
+void render_16x8_string_inverted(u8 x, u8 y, const char *str) {
+    u8 current_x = x;
+    
+    while (*str) {
+        if (current_x + 16 > DISPLAY_WIDTH) break; // Stop if next char would go off screen
+        if (*str >= 0x20 && *str <= 0x7E) {  // All printable ASCII characters
+            render_16x8_char_inverted(current_x, y, *str);
+            current_x += 12; // 12 pixel spacing
+        }
+        str++;
+    }
+}
+
+//=============================================================================
+// DRAWING UTILITIES
+//=============================================================================
+
+void draw_horizontal_line(u8 x1, u8 x2, u8 y) {
+    if (x1 > x2) {
+        u8 temp = x1;
+        x1 = x2;
+        x2 = temp;
+    }
+    
+    lcd_set_window(x1, y, x2, y);
+    
+    for (u8 x = x1; x <= x2; x++) {
+        lcd_send_data(0xFF); // white hi
+        lcd_send_data(0xFF); // white lo
+    }
+}
