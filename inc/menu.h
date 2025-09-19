@@ -11,6 +11,7 @@
 // Menu system states
 #define MENU_MODE_NORMAL    0
 #define MENU_MODE_MENU      1
+#define MENU_MODE_ITEM      2
 
 // Menu item types
 #define MENU_TYPE_NUMERIC   0
@@ -120,5 +121,18 @@ void menu_render_single_item(u8 item_index, u8 is_selected);
 void menu_render_partial_update(u8 old_cursor, u8 new_cursor);
 void menu_format_value_string(const menu_item_t* item, u16 value, char* buffer);
 u16 menu_get_current_value_for_item(u8 item_index);
+
+// Item detail screen functions
+void menu_enter_item_detail(void);
+void menu_return_to_list(void);
+void menu_save_and_return(void);
+void menu_item_navigate_up(void);
+void menu_item_navigate_down(void);
+void menu_item_digit_input(u8 digit);
+void menu_update_item_display(void);
+void menu_render_item_detail(void);
+void menu_render_choice_options(const menu_item_t* item, u8 start_y);
+void menu_render_numeric_value(const menu_item_t* item, u8 start_y);
+void menu_clear_area(u8 x, u8 y, u8 w, u8 h, u8 color_hi, u8 color_lo);
 
 #endif // MENU_H

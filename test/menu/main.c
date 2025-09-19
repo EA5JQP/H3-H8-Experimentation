@@ -101,7 +101,17 @@ void main(void) {
     uart_pr_init();
     uart_bt_init();
     lcd_init();
-    clear_area(0, 0, DISPLAY_WIDTH - 1, DISPLAY_HEIGHT - 1);
+    // Use working LCD pattern instead of buggy clear_area()
+    {
+        u8 row, col;
+        lcd_set_window(0, 0, 159, 127);
+        for (row = 0; row < 128; row++) {
+            for (col = 0; col < 160; col++) {
+                lcd_send_data(0x00);
+                lcd_send_data(0x00);
+            }
+        }
+    }
 
     delay_ms(6, 232);
 

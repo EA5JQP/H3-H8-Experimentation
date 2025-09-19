@@ -8,6 +8,10 @@
 // Display and font definitions
 #define DISPLAY_WIDTH 160
 #define DISPLAY_HEIGHT 128
+#define CHAR_WIDTH_IN_PIXELS 8
+#define CHAR_HEIGHT_IN_PIXELS 16
+#define MAX_CHARS_PER_STRING DISPLAY_WIDTH / CHAR_WIDTH_IN_PIXELS  
+#define SPACING_BETWEEN_CHARS 12
 
 
 // 16x16 font definitions
