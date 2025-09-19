@@ -1487,27 +1487,6 @@ void menu_render_item_detail(void) {
         center_x = (DISPLAY_WIDTH - name_width) / 2;
     }
     
-    // Debug output via UART
-    send_uart_message("=== CENTERING DEBUG ===");
-    uart_pr_send_string((u8*)"Item: ");
-    uart_pr_send_string((u8*)item->name);
-    uart_pr_send_string((u8*)"\r\n");
-    uart_pr_send_string((u8*)"name_len: ");
-    uart_pr_send_byte('0' + (name_len / 10));
-    uart_pr_send_byte('0' + (name_len % 10));
-    uart_pr_send_string((u8*)"\r\n");
-    uart_pr_send_string((u8*)"name_width: ");
-    uart_pr_send_byte('0' + (name_width / 100));
-    uart_pr_send_byte('0' + ((name_width / 10) % 10));
-    uart_pr_send_byte('0' + (name_width % 10));
-    uart_pr_send_string((u8*)"\r\n");
-    uart_pr_send_string((u8*)"center_x: ");
-    uart_pr_send_byte('0' + (center_x / 100));
-    uart_pr_send_byte('0' + ((center_x / 10) % 10));
-    uart_pr_send_byte('0' + (center_x % 10));
-    uart_pr_send_string((u8*)"\r\n");
-    
-    
     // Render centered item name at top (same Y position as main MENU)
     render_16x8_string(center_x, 5, item->name);
     
